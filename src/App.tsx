@@ -1,11 +1,19 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import { Layout } from "./components/Layout";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import { CompaniesPage } from "./pages/CompaniesPage";
+import { CustomerDetail } from "./pages/CustomerDetail";
+import { CustomerForm } from "./pages/CustomerForm";
+import { CustomersPage } from "./pages/CustomersPage";
 import { Dashboard } from "./pages/Dashboard";
 import { Login } from "./pages/Login";
 import { Register } from "./pages/Register";
-import { WorkerDetail } from "./pages/WorkerDetail";
-import { WorkerForm } from "./pages/WorkerForm";
+import { VisaDetail } from "./pages/VisaDetail";
+import { VisaForm } from "./pages/VisaForm";
+import {
+  VisaListActivePage,
+  VisaListArchivePage,
+} from "./pages/VisaListPages";
 
 export default function App() {
   return (
@@ -16,9 +24,16 @@ export default function App() {
       <Route element={<ProtectedRoute />}>
         <Route element={<Layout />}>
           <Route path="/" element={<Dashboard />} />
-          <Route path="/workers/new" element={<WorkerForm />} />
-          <Route path="/workers/:id/edit" element={<WorkerForm />} />
-          <Route path="/workers/:id" element={<WorkerDetail />} />
+          <Route path="/companies" element={<CompaniesPage />} />
+          <Route path="/visas/active" element={<VisaListActivePage />} />
+          <Route path="/visas/archive" element={<VisaListArchivePage />} />
+          <Route path="/visas/new" element={<VisaForm />} />
+          <Route path="/visas/:id/edit" element={<VisaForm />} />
+          <Route path="/visas/:id" element={<VisaDetail />} />
+          <Route path="/customers" element={<CustomersPage />} />
+          <Route path="/customers/new" element={<CustomerForm />} />
+          <Route path="/customers/:id/edit" element={<CustomerForm />} />
+          <Route path="/customers/:id" element={<CustomerDetail />} />
         </Route>
       </Route>
 

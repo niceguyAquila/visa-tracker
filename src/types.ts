@@ -10,25 +10,57 @@ export type Profile = {
   full_name: string | null;
 };
 
-export type Worker = {
+export type Company = {
   id: string;
   org_id: string;
-  full_name: string;
-  employer_ref: string | null;
-  notes: string | null;
+  name: string;
   created_at: string;
 };
 
-export type VisaRecord = {
+export type Customer = {
   id: string;
-  worker_id: string;
-  visa_label: string;
-  issue_date: string | null;
-  expiry_date: string;
-  extension_deadline: string | null;
-  notes: string | null;
-  reminder_10d_sent: boolean;
+  org_id: string;
+  company_id: string;
+  full_name: string;
+  passport_number: string;
+  passport_expiry: string;
+  visa_count: number;
+  extension_count: number;
+  contact_number: string;
   created_at: string;
 };
 
-export type WorkerWithVisas = Worker & { visa_records: VisaRecord[] };
+export type CustomerWithCompany = Customer & {
+  companies: Pick<Company, "id" | "name"> | null;
+};
+
+export type VisaDays = "90 Days" | "30 Days";
+
+export type VisaStatus = "In-Progress" | "Cuti" | "Blacklist" | "Finished";
+
+export type Visa = {
+  id: string;
+  org_id: string;
+  customer_id: string;
+  visa_days: VisaDays;
+  date_entered: string;
+  date_to_extension: string;
+  date_extended: string | null;
+  extension_done: boolean;
+  leave_date_reminder: string | null;
+  cycle_done: boolean;
+  cuti: boolean;
+  blacklist: boolean;
+  status: VisaStatus;
+  masuk_dari: string;
+  created_at: string;
+};
+
+export type VisaWithCustomer = Visa & {
+  customers: (Pick<
+    Customer,
+    "id" | "full_name" | "passport_number" | "company_id"
+  > & {
+    companies: Pick<Company, "id" | "name"> | null;
+  }) | null;
+};

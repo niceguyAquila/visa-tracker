@@ -13,7 +13,7 @@ export default defineConfig({
       manifest: {
         name: "Visa Tracker",
         short_name: "Visa Tracker",
-        description: "Track worker visa expiry dates for your team",
+        description: "Track customer passport expiry by company",
         theme_color: "#2563eb",
         background_color: "#f8fafc",
         display: "standalone",
