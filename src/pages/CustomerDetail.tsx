@@ -36,11 +36,16 @@ export function CustomerDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [flashError, setFlashError] = useState<string | null>(null);
+  const [flashSuccess, setFlashSuccess] = useState<string | null>(null);
 
   useEffect(() => {
-    const state = location.state as { flashError?: string } | null;
-    if (state?.flashError) {
-      setFlashError(state.flashError);
+    const state = location.state as {
+      flashError?: string;
+      flashSuccess?: string;
+    } | null;
+    if (state?.flashError || state?.flashSuccess) {
+      if (state.flashError) setFlashError(state.flashError);
+      if (state.flashSuccess) setFlashSuccess(state.flashSuccess);
       navigate(location.pathname, { replace: true, state: {} });
     }
   }, [location.pathname, location.state, navigate]);
@@ -113,6 +118,11 @@ export function CustomerDetail() {
 
   return (
     <div className="space-y-6">
+      {flashSuccess ? (
+        <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
+          {flashSuccess}
+        </p>
+      ) : null}
       {flashError ? (
         <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
           {flashError}

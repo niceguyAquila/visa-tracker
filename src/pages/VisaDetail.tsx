@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { CompanyChip } from "../components/CompanyChip";
 import { daysUntilISODate, formatDisplayDate } from "../lib/dates";
 import { supabase } from "../lib/supabase";
@@ -102,9 +102,19 @@ function TimelineConnector() {
 export function VisaDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [visa, setVisa] = useState<VisaWithCustomer | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [flashSuccess, setFlashSuccess] = useState<string | null>(null);
+
+  useEffect(() => {
+    const state = location.state as { flashSuccess?: string } | null;
+    if (state?.flashSuccess) {
+      setFlashSuccess(state.flashSuccess);
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.pathname, location.state, navigate]);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -171,6 +181,11 @@ export function VisaDetail() {
 
   return (
     <div className="space-y-6">
+      {flashSuccess ? (
+        <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
+          {flashSuccess}
+        </p>
+      ) : null}
       <div>
         <Link
           to={listPath}
