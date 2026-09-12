@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import { CompanyChip } from "../components/CompanyChip";
 import { supabase } from "../lib/supabase";
 import { daysUntilISODate, formatDisplayDate } from "../lib/dates";
 import type { CustomerWithCompany } from "../types";
@@ -68,7 +69,7 @@ export function CustomersPage() {
     setError(null);
     const { data, error: qErr } = await supabase
       .from("customers")
-      .select("*, companies ( id, name )")
+      .select("*, companies ( id, name, color )")
       .order("full_name", { ascending: true });
 
     if (qErr) {
@@ -254,7 +255,14 @@ export function CustomersPage() {
                             {c.full_name}
                           </p>
                           <p className="shrink-0 text-right text-sm text-slate-500">
-                            {c.companies?.name ?? "—"}
+                            {c.companies ? (
+                              <CompanyChip
+                                name={c.companies.name}
+                                color={c.companies.color}
+                              />
+                            ) : (
+                              "—"
+                            )}
                           </p>
                         </div>
                         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">

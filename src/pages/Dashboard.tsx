@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import { CompanySwatch } from "../components/CompanyChip";
 import { daysUntilISODate, formatDisplayDate } from "../lib/dates";
 import {
   aggregateKpis,
@@ -22,14 +23,28 @@ function urgencyClass(days: number): string {
   return "bg-slate-100 text-slate-700";
 }
 
+function kpiPath(
+  pathname: string,
+  params: Record<string, string | null | undefined>
+): string {
+  const search = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value) search.set(key, value);
+  }
+  const qs = search.toString();
+  return qs ? `${pathname}?${qs}` : pathname;
+}
+
 function KpiCard({
   label,
   value,
   tone,
+  to,
 }: {
   label: string;
   value: number;
   tone?: "red" | "amber" | "yellow";
+  to?: string;
 }) {
   const toneClass =
     tone === "red"
@@ -40,25 +55,70 @@ function KpiCard({
           ? "border-yellow-200 bg-yellow-50"
           : "border-slate-200 bg-white";
 
-  return (
-    <div className={`rounded-xl border p-4 shadow-sm ${toneClass}`}>
+  const className = `rounded-xl border p-4 shadow-sm ${toneClass}${
+    to ? " block transition hover:border-slate-300" : ""
+  }`;
+
+  const body = (
+    <>
       <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
         {label}
       </p>
       <p className="mt-1 text-2xl font-semibold text-slate-900">{value}</p>
-    </div>
+    </>
   );
+
+  if (to) {
+    return (
+      <Link to={to} className={className}>
+        {body}
+      </Link>
+    );
+  }
+
+  return <div className={className}>{body}</div>;
 }
 
-function KpiGrid({ kpis, showCompanies }: { kpis: Kpis; showCompanies: boolean }) {
+function KpiGrid({
+  kpis,
+  showCompanies,
+  companyId,
+}: {
+  kpis: Kpis;
+  showCompanies: boolean;
+  companyId: string | null;
+}) {
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-      <KpiCard label="Customers" value={kpis.customers} />
+      <KpiCard
+        label="Customers"
+        value={kpis.customers}
+        to={kpiPath("/customers", { company: companyId })}
+      />
       {showCompanies ? <KpiCard label="Companies" value={kpis.companies} /> : null}
-      <KpiCard label="Passports expired" value={kpis.expired} tone="red" />
-      <KpiCard label="Expiring ≤10d" value={kpis.expiring10} tone="amber" />
-      <KpiCard label="Expiring ≤30d" value={kpis.expiring30} tone="yellow" />
-      <KpiCard label="Total visas" value={kpis.visas} />
+      <KpiCard
+        label="Passports expired"
+        value={kpis.expired}
+        tone="red"
+        to={kpiPath("/customers", { expiry: "expired", company: companyId })}
+      />
+      <KpiCard
+        label="Expiring ≤10d"
+        value={kpis.expiring10}
+        tone="amber"
+        to={kpiPath("/customers", { expiry: "10", company: companyId })}
+      />
+      <KpiCard
+        label="Expiring ≤30d"
+        value={kpis.expiring30}
+        tone="yellow"
+        to={kpiPath("/customers", { expiry: "30", company: companyId })}
+      />
+      <KpiCard
+        label="Total visas"
+        value={kpis.visas}
+        to={kpiPath("/visas/active", { company: companyId })}
+      />
       <KpiCard label="Total extensions" value={kpis.extensions} />
     </div>
   );
@@ -81,7 +141,7 @@ export function Dashboard() {
       supabase.from("companies").select("*").order("name", { ascending: true }),
       supabase
         .from("customers")
-        .select("*, companies ( id, name )")
+        .select("*, companies ( id, name, color )")
         .order("full_name", { ascending: true }),
     ]);
 
@@ -185,12 +245,17 @@ export function Dashboard() {
         </div>
       ) : (
         <>
-          <KpiGrid kpis={kpis} showCompanies={!focusedCompany} />
+          <KpiGrid
+            kpis={kpis}
+            showCompanies={!focusedCompany}
+            companyId={focusedId}
+          />
 
           {focusedCompany ? (
             <section className="space-y-3">
               <div className="flex items-center justify-between gap-3">
-                <h2 className="text-lg font-semibold text-slate-900">
+                <h2 className="flex items-center gap-2 text-lg font-semibold text-slate-900">
+                  <CompanySwatch color={focusedCompany.color} className="size-3.5" />
                   Customers at {focusedCompany.name}
                 </h2>
                 <button
@@ -278,7 +343,10 @@ export function Dashboard() {
                         }}
                       >
                         <td className="px-3 py-2.5 font-medium text-slate-900">
-                          {row.name}
+                          <span className="inline-flex items-center gap-2">
+                            <CompanySwatch color={row.color} />
+                            {row.name}
+                          </span>
                         </td>
                         <td className="px-3 py-2.5 text-right tabular-nums text-slate-700">
                           {row.customers}

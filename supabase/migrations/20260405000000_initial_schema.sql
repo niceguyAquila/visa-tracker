@@ -1,4 +1,4 @@
--- Visa Tracker: org-scoped workers + visas, invite-only signup via trigger
+-- Mission: Approved: org-scoped workers + visas, invite-only signup via trigger
 
 create extension if not exists "pgcrypto";
 

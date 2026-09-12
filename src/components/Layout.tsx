@@ -10,7 +10,7 @@ export function Layout() {
       <header className="sticky top-0 z-40 border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 py-3">
           <Link to="/" className="text-lg font-semibold text-slate-800">
-            Visa Tracker
+            Mission: Approved
           </Link>
           <div className="flex min-w-0 items-center gap-2 text-sm sm:gap-3">
             {user?.email ? (

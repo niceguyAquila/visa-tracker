@@ -14,6 +14,7 @@ export type Company = {
   id: string;
   org_id: string;
   name: string;
+  color: string | null;
   created_at: string;
 };
 
@@ -31,7 +32,7 @@ export type Customer = {
 };
 
 export type CustomerWithCompany = Customer & {
-  companies: Pick<Company, "id" | "name"> | null;
+  companies: Pick<Company, "id" | "name" | "color"> | null;
 };
 
 export type VisaDays = "90 Days" | "30 Days";
@@ -61,6 +62,6 @@ export type VisaWithCustomer = Visa & {
     Customer,
     "id" | "full_name" | "passport_number" | "company_id"
   > & {
-    companies: Pick<Company, "id" | "name"> | null;
+    companies: Pick<Company, "id" | "name" | "color"> | null;
   }) | null;
 };

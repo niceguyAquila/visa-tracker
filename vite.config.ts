@@ -11,8 +11,8 @@ export default defineConfig({
       registerType: "autoUpdate",
       includeAssets: ["icons/icon-192.png", "icons/icon-512.png"],
       manifest: {
-        name: "Visa Tracker",
-        short_name: "Visa Tracker",
+        name: "Mission: Approved",
+        short_name: "Mission: Approved",
         description: "Track customer passport expiry by company",
         theme_color: "#2563eb",
         background_color: "#f8fafc",

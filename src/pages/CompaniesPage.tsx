@@ -1,14 +1,73 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { CompanySwatch } from "../components/CompanyChip";
+import {
+  COMPANY_COLORS,
+  companyColorLabel,
+  companySwatchClass,
+  isCompanyColor,
+  type CompanyColorName,
+} from "../lib/companyColor";
 import { getDefaultOrgId } from "../lib/org";
 import { supabase } from "../lib/supabase";
 import type { Company } from "../types";
+
+function ColorPicker({
+  value,
+  onChange,
+  disabled,
+}: {
+  value: CompanyColorName | null;
+  onChange: (color: CompanyColorName | null) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <span className="text-sm font-medium text-slate-700">Color</span>
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={() => onChange(null)}
+          className={`rounded-lg border px-2.5 py-1.5 text-xs font-medium ${
+            value === null
+              ? "border-slate-800 bg-slate-100 text-slate-900"
+              : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+          } disabled:opacity-60`}
+        >
+          None
+        </button>
+        {COMPANY_COLORS.map((c) => (
+          <button
+            key={c}
+            type="button"
+            disabled={disabled}
+            title={companyColorLabel(c)}
+            aria-label={companyColorLabel(c)}
+            aria-pressed={value === c}
+            onClick={() => onChange(c)}
+            className={`flex size-8 items-center justify-center rounded-full border-2 ${
+              value === c ? "border-slate-900" : "border-transparent"
+            } disabled:opacity-60`}
+          >
+            <span
+              className={`size-5 rounded-full ${companySwatchClass(c)}`}
+              aria-hidden="true"
+            />
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export function CompaniesPage() {
   const [orgId, setOrgId] = useState<string | null>(null);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [name, setName] = useState("");
+  const [color, setColor] = useState<CompanyColorName | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
+  const [editColor, setEditColor] = useState<CompanyColorName | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -53,6 +112,7 @@ export function CompaniesPage() {
     const { error: iErr } = await supabase.from("companies").insert({
       org_id: orgId,
       name: trimmed,
+      color,
     });
     setBusy(false);
     if (iErr) {
@@ -60,6 +120,7 @@ export function CompaniesPage() {
       return;
     }
     setName("");
+    setColor(null);
     await load();
   }
 
@@ -72,7 +133,7 @@ export function CompaniesPage() {
     setError(null);
     const { error: uErr } = await supabase
       .from("companies")
-      .update({ name: trimmed })
+      .update({ name: trimmed, color: editColor })
       .eq("id", editingId);
     setBusy(false);
     if (uErr) {
@@ -81,6 +142,7 @@ export function CompaniesPage() {
     }
     setEditingId(null);
     setEditName("");
+    setEditColor(null);
     await load();
   }
 
@@ -106,15 +168,15 @@ export function CompaniesPage() {
       <div>
         <h1 className="text-2xl font-semibold text-slate-900">Companies</h1>
         <p className="text-sm text-slate-600">
-          Group customers under a company name.
+          Group customers under a company name and optional color.
         </p>
       </div>
 
       <form
         onSubmit={onCreate}
-        className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-end"
+        className="space-y-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
       >
-        <label className="block flex-1">
+        <label className="block">
           <span className="text-sm font-medium text-slate-700">Company name</span>
           <input
             required
@@ -124,6 +186,7 @@ export function CompaniesPage() {
             className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-base focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
           />
         </label>
+        <ColorPicker value={color} onChange={setColor} disabled={busy} />
         <button
           type="submit"
           disabled={busy || !orgId}
@@ -146,12 +209,17 @@ export function CompaniesPage() {
           {companies.map((co) => (
             <li key={co.id} className="flex flex-col gap-2 p-4 sm:flex-row sm:items-center sm:justify-between">
               {editingId === co.id ? (
-                <form onSubmit={onSaveEdit} className="flex flex-1 flex-col gap-2 sm:flex-row sm:items-center">
+                <form onSubmit={onSaveEdit} className="flex flex-1 flex-col gap-3">
                   <input
                     required
                     value={editName}
                     onChange={(e) => setEditName(e.target.value)}
                     className="w-full rounded-lg border border-slate-200 px-3 py-2 text-base focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  />
+                  <ColorPicker
+                    value={editColor}
+                    onChange={setEditColor}
+                    disabled={busy}
                   />
                   <div className="flex gap-2">
                     <button
@@ -166,6 +234,7 @@ export function CompaniesPage() {
                       onClick={() => {
                         setEditingId(null);
                         setEditName("");
+                        setEditColor(null);
                       }}
                       className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-800 hover:bg-slate-50"
                     >
@@ -175,17 +244,21 @@ export function CompaniesPage() {
                 </form>
               ) : (
                 <>
-                  <p className="font-medium text-slate-900">{co.name}</p>
+                  <div className="flex min-w-0 items-center gap-2">
+                    <CompanySwatch color={co.color} className="size-3.5" />
+                    <p className="truncate font-medium text-slate-900">{co.name}</p>
+                  </div>
                   <div className="flex gap-2">
                     <button
                       type="button"
                       onClick={() => {
                         setEditingId(co.id);
                         setEditName(co.name);
+                        setEditColor(isCompanyColor(co.color) ? co.color : null);
                       }}
                       className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-800 hover:bg-slate-50"
                     >
-                      Rename
+                      Edit
                     </button>
                     <button
                       type="button"

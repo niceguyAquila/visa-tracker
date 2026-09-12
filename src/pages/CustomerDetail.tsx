@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
+import { CompanyChip } from "../components/CompanyChip";
 import { supabase } from "../lib/supabase";
 import { daysUntilISODate, formatDisplayDate } from "../lib/dates";
 import type { CustomerWithCompany, Visa, VisaStatus } from "../types";
@@ -29,10 +30,20 @@ function statusBadgeClass(status: VisaStatus): string {
 export function CustomerDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [customer, setCustomer] = useState<CustomerWithCompany | null>(null);
   const [visas, setVisas] = useState<Visa[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [flashError, setFlashError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const state = location.state as { flashError?: string } | null;
+    if (state?.flashError) {
+      setFlashError(state.flashError);
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.pathname, location.state, navigate]);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -40,7 +51,7 @@ export function CustomerDetail() {
     setError(null);
     const { data, error: qErr } = await supabase
       .from("customers")
-      .select("*, companies ( id, name )")
+      .select("*, companies ( id, name, color )")
       .eq("id", id)
       .single();
     if (qErr || !data) {
@@ -102,6 +113,11 @@ export function CustomerDetail() {
 
   return (
     <div className="space-y-6">
+      {flashError ? (
+        <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+          {flashError}
+        </p>
+      ) : null}
       <div>
         <Link to="/customers" className="text-sm font-medium text-blue-600 hover:underline">
           ← Customers
@@ -109,7 +125,16 @@ export function CustomerDetail() {
         <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h1 className="text-2xl font-semibold text-slate-900">{customer.full_name}</h1>
-            <p className="text-slate-600">{customer.companies?.name ?? "—"}</p>
+            <div className="mt-1">
+              {customer.companies ? (
+                <CompanyChip
+                  name={customer.companies.name}
+                  color={customer.companies.color}
+                />
+              ) : (
+                <p className="text-slate-600">—</p>
+              )}
+            </div>
           </div>
           <div className="flex flex-wrap gap-2">
             <Link

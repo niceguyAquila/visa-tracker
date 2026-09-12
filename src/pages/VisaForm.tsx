@@ -408,47 +408,50 @@ export function VisaForm() {
           </div>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <label className="block">
-            <span className="text-sm font-medium text-slate-700">Date extended</span>
-            <input
-              type="date"
-              value={dateExtended}
-              onChange={(e) => onDateExtendedChange(e.target.value)}
-              className={inputClass}
-            />
-            <p className="mt-1 text-xs text-slate-500">
-              Setting a date marks extension as done. You can still toggle that
-              manually.
-            </p>
-          </label>
+        <div>
+          <div className="grid gap-4 sm:grid-cols-2 sm:items-start">
+            <label className="block">
+              <span className="text-sm font-medium text-slate-700">Date extended</span>
+              <input
+                type="date"
+                value={dateExtended}
+                onChange={(e) => onDateExtendedChange(e.target.value)}
+                className={inputClass}
+              />
+            </label>
 
-          <div className="flex flex-col justify-end">
-            <button
-              type="button"
-              role="switch"
-              aria-checked={extensionDone}
-              onClick={() => onExtensionDoneChange(!extensionDone)}
-              className={`flex w-full items-center justify-between rounded-lg border px-3 py-2.5 text-sm font-medium transition ${
-                extensionDone
-                  ? "border-emerald-200 bg-emerald-50 text-emerald-900"
-                  : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-              }`}
-            >
-              <span>Extension done</span>
-              <span
-                className={`relative inline-flex h-6 w-11 shrink-0 rounded-full transition ${
-                  extensionDone ? "bg-emerald-500" : "bg-slate-300"
+            <div className="block">
+              <span className="text-sm font-medium text-slate-700">Extension done</span>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={extensionDone}
+                onClick={() => onExtensionDoneChange(!extensionDone)}
+                className={`mt-1 flex h-[42px] w-full items-center justify-between rounded-lg border px-3 text-sm font-medium transition ${
+                  extensionDone
+                    ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+                    : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
                 }`}
               >
+                <span>{extensionDone ? "Yes" : "No"}</span>
                 <span
-                  className={`absolute top-0.5 left-0.5 size-5 rounded-full bg-white shadow transition ${
-                    extensionDone ? "translate-x-5" : "translate-x-0"
+                  className={`relative inline-flex h-6 w-11 shrink-0 rounded-full transition ${
+                    extensionDone ? "bg-emerald-500" : "bg-slate-300"
                   }`}
-                />
-              </span>
-            </button>
+                >
+                  <span
+                    className={`absolute top-0.5 left-0.5 size-5 rounded-full bg-white shadow transition ${
+                      extensionDone ? "translate-x-5" : "translate-x-0"
+                    }`}
+                  />
+                </span>
+              </button>
+            </div>
           </div>
+          <p className="mt-1 text-xs text-slate-500">
+            Setting a date marks extension as done. You can still toggle that
+            manually.
+          </p>
         </div>
 
         <label className="block">

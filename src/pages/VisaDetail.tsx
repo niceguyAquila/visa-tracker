@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { CompanyChip } from "../components/CompanyChip";
 import { daysUntilISODate, formatDisplayDate } from "../lib/dates";
 import { supabase } from "../lib/supabase";
 import type { VisaStatus, VisaWithCustomer } from "../types";
 
 const VISA_SELECT =
-  "*, customers ( id, full_name, passport_number, company_id, companies ( id, name ) )";
+  "*, customers ( id, full_name, passport_number, company_id, companies ( id, name, color ) )";
 
 function urgencyClass(days: number): string {
   if (days < 0) return "bg-red-100 text-red-900";
@@ -183,8 +184,16 @@ export function VisaDetail() {
             <h1 className="truncate text-2xl font-semibold text-slate-900">
               {visa.customers?.full_name ?? "Visa"}
             </h1>
-            <p className="truncate text-slate-600">
-              {visa.customers?.companies?.name ?? "—"} · {visa.visa_days}
+            <p className="mt-1 flex flex-wrap items-center gap-2 text-slate-600">
+              {visa.customers?.companies ? (
+                <CompanyChip
+                  name={visa.customers.companies.name}
+                  color={visa.customers.companies.color}
+                />
+              ) : (
+                <span>—</span>
+              )}
+              <span>· {visa.visa_days}</span>
             </p>
             <span
               className={`mt-2 inline-flex rounded-lg px-2.5 py-1 text-xs font-medium ${statusBadgeClass(visa.status)}`}
@@ -268,7 +277,14 @@ export function VisaDetail() {
               Company
             </dt>
             <dd className="mt-1 text-slate-900">
-              {visa.customers?.companies?.name ?? "—"}
+              {visa.customers?.companies ? (
+                <CompanyChip
+                  name={visa.customers.companies.name}
+                  color={visa.customers.companies.color}
+                />
+              ) : (
+                "—"
+              )}
             </dd>
           </div>
           <div>

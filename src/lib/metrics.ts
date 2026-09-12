@@ -14,6 +14,7 @@ export type Kpis = {
 export type CompanyMetrics = Kpis & {
   companyId: string;
   name: string;
+  color: string | null;
 };
 
 export function customersForCompany(
@@ -60,6 +61,7 @@ export function metricsByCompany(
       return {
         companyId: co.id,
         name: co.name,
+        color: co.color,
         ...aggregateKpis(scoped, 1),
       };
     })
