@@ -14,6 +14,38 @@ type UrgencyFilter = "all" | "expired" | "10" | "30" | "ok";
 type ExtDoneFilter = "all" | "yes" | "no";
 type ArchiveStatusFilter = "all" | "Cuti" | "Blacklist" | "Finished";
 
+type SortKey =
+  | "status"
+  | "name"
+  | "passport"
+  | "masuk_dari"
+  | "company"
+  | "visa_days"
+  | "date_entered"
+  | "date_to_extension"
+  | "date_extended"
+  | "extension_done"
+  | "leave_date_reminder"
+  | "cycle_done";
+
+const SORT_KEYS: SortKey[] = [
+  "status",
+  "name",
+  "passport",
+  "masuk_dari",
+  "company",
+  "visa_days",
+  "date_entered",
+  "date_to_extension",
+  "date_extended",
+  "extension_done",
+  "leave_date_reminder",
+  "cycle_done",
+];
+
+const DEFAULT_SORT: SortKey = "date_to_extension";
+const DEFAULT_DIR = "asc" as const;
+
 function todayISO(): string {
   const now = new Date();
   return new Date(
@@ -32,6 +64,7 @@ function addDaysISO(iso: string, days: number): string {
 
 function urgencyCellClass(days: number): string {
   if (days < 0) return "text-red-700";
+  if (days === 0) return "text-yellow-800";
   if (days <= 10) return "text-amber-800";
   if (days <= 30) return "text-yellow-800";
   return "text-slate-700";
@@ -52,15 +85,14 @@ function statusBadgeClass(status: VisaStatus): string {
   }
 }
 
-function rowStatusClass(status: VisaStatus): string {
-  switch (status) {
-    case "Cuti":
-      return "bg-green-50 hover:bg-green-100";
-    case "Blacklist":
-      return "bg-cyan-50 hover:bg-cyan-100";
-    default:
-      return "bg-white hover:bg-slate-50";
-  }
+function rowClass(
+  status: VisaStatus,
+  leaveDays: number | null
+): string {
+  if (status === "Cuti") return "bg-green-50 hover:bg-green-100";
+  if (status === "Blacklist") return "bg-cyan-50 hover:bg-cyan-100";
+  if (leaveDays === 0) return "bg-yellow-100 hover:bg-yellow-200";
+  return "bg-white hover:bg-slate-50";
 }
 
 function parseUrgency(value: string | null): UrgencyFilter {
@@ -88,6 +120,60 @@ function parsePage(value: string | null): number {
   return Math.floor(n);
 }
 
+function parseSort(value: string | null): SortKey {
+  if (value && (SORT_KEYS as string[]).includes(value)) {
+    return value as SortKey;
+  }
+  return DEFAULT_SORT;
+}
+
+function parseDir(value: string | null): "asc" | "desc" {
+  if (value === "desc") return "desc";
+  if (value === "asc") return "asc";
+  return DEFAULT_DIR;
+}
+
+function SortHeader({
+  label,
+  sortKey,
+  activeKey,
+  dir,
+  onSort,
+  align = "left",
+}: {
+  label: string;
+  sortKey: SortKey;
+  activeKey: SortKey;
+  dir: "asc" | "desc";
+  onSort: (key: SortKey) => void;
+  align?: "left" | "center" | "right";
+}) {
+  const active = activeKey === sortKey;
+  const alignClass =
+    align === "center"
+      ? "justify-center text-center"
+      : align === "right"
+        ? "justify-end text-right"
+        : "justify-start text-left";
+
+  return (
+    <th className="whitespace-nowrap px-3 py-2.5">
+      <button
+        type="button"
+        onClick={() => onSort(sortKey)}
+        className={`inline-flex w-full items-center gap-1 font-medium uppercase tracking-wide hover:text-slate-800 ${alignClass} ${
+          active ? "text-slate-800" : "text-slate-500"
+        }`}
+      >
+        <span>{label}</span>
+        <span className="text-[0.65rem] tabular-nums" aria-hidden="true">
+          {active ? (dir === "asc" ? "▲" : "▼") : "◇"}
+        </span>
+      </button>
+    </th>
+  );
+}
+
 type VisaListProps = {
   mode: "active" | "archive";
 };
@@ -102,6 +188,8 @@ function VisaList({ mode }: VisaListProps) {
   const extDone = parseExtDone(searchParams.get("ext"));
   const archiveStatus = parseArchiveStatus(searchParams.get("status"));
   const page = parsePage(searchParams.get("page"));
+  const sortKey = parseSort(searchParams.get("sort"));
+  const sortDir = parseDir(searchParams.get("dir"));
 
   const [rows, setRows] = useState<VisaWithCustomer[]>([]);
   const [totalCount, setTotalCount] = useState(0);
@@ -149,16 +237,51 @@ function VisaList({ mode }: VisaListProps) {
     setLoading(true);
     setError(null);
 
-    const needsCustomerInner = Boolean(query.trim() || companyId);
-    const select = needsCustomerInner
-      ? "*, customers!inner ( id, full_name, passport_number, company_id, companies ( id, name ) )"
-      : "*, customers ( id, full_name, passport_number, company_id, companies ( id, name ) )";
+    const needsCustomerInner = Boolean(
+      query.trim() ||
+        companyId ||
+        sortKey === "name" ||
+        sortKey === "passport" ||
+        sortKey === "company"
+    );
+    const select =
+      sortKey === "company"
+        ? "*, customers!inner ( id, full_name, passport_number, company_id, companies!inner ( id, name ) )"
+        : needsCustomerInner
+          ? "*, customers!inner ( id, full_name, passport_number, company_id, companies ( id, name ) )"
+          : "*, customers ( id, full_name, passport_number, company_id, companies ( id, name ) )";
 
-    let q = supabase
-      .from("visas")
-      .select(select, { count: "exact" })
-      .order("date_to_extension", { ascending: true })
-      .order("id", { ascending: true });
+    let q = supabase.from("visas").select(select, { count: "exact" });
+
+    const ascending = sortDir === "asc";
+    switch (sortKey) {
+      case "name":
+        q = q
+          .order("full_name", { ascending, foreignTable: "customers" })
+          .order("id", { ascending: true });
+        break;
+      case "passport":
+        q = q
+          .order("passport_number", { ascending, foreignTable: "customers" })
+          .order("id", { ascending: true });
+        break;
+      case "company":
+        q = q
+          .order("name", { ascending, foreignTable: "customers.companies" })
+          .order("id", { ascending: true });
+        break;
+      case "date_extended":
+      case "leave_date_reminder":
+        q = q
+          .order(sortKey, { ascending, nullsFirst: false })
+          .order("id", { ascending: true });
+        break;
+      default:
+        q = q
+          .order(sortKey, { ascending })
+          .order("id", { ascending: true });
+        break;
+    }
 
     if (mode === "active") {
       q = q.eq("status", "In-Progress");
@@ -217,6 +340,8 @@ function VisaList({ mode }: VisaListProps) {
     extDone,
     archiveStatus,
     safePage,
+    sortKey,
+    sortDir,
   ]);
 
   useEffect(() => {
@@ -259,6 +384,15 @@ function VisaList({ mode }: VisaListProps) {
       { page: nextPage <= 1 ? "" : String(nextPage) },
       false
     );
+  }
+
+  function toggleSort(key: SortKey) {
+    const nextDir =
+      sortKey === key ? (sortDir === "asc" ? "desc" : "asc") : "asc";
+    updateParams({
+      sort: key === DEFAULT_SORT ? "" : key,
+      dir: nextDir === DEFAULT_DIR ? "" : nextDir,
+    });
   }
 
   return (
@@ -419,25 +553,97 @@ function VisaList({ mode }: VisaListProps) {
         <>
           <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
             <table className="w-full min-w-[78rem] border-collapse text-left text-sm">
-              <thead className="sticky top-0 z-10 border-b border-slate-200 bg-slate-50 text-xs font-medium uppercase tracking-wide text-slate-500">
+              <thead className="sticky top-0 z-10 border-b border-slate-200 bg-slate-50 text-xs">
                 <tr>
-                  <th className="whitespace-nowrap px-3 py-2.5 text-right">#</th>
-                  <th className="whitespace-nowrap px-3 py-2.5">Status</th>
-                  <th className="whitespace-nowrap px-3 py-2.5">Name</th>
-                  <th className="whitespace-nowrap px-3 py-2.5">Passport</th>
-                  <th className="whitespace-nowrap px-3 py-2.5">Masuk Dari</th>
-                  <th className="whitespace-nowrap px-3 py-2.5">Company</th>
-                  <th className="whitespace-nowrap px-3 py-2.5">Visa Days</th>
-                  <th className="whitespace-nowrap px-3 py-2.5">Arrival Date</th>
-                  <th className="whitespace-nowrap px-3 py-2.5">Extension Date</th>
-                  <th className="whitespace-nowrap px-3 py-2.5">Date Extended</th>
-                  <th className="whitespace-nowrap px-3 py-2.5 text-center">
-                    Extension Done
+                  <th className="whitespace-nowrap px-3 py-2.5 text-right font-medium uppercase tracking-wide text-slate-500">
+                    #
                   </th>
-                  <th className="whitespace-nowrap px-3 py-2.5">Leave Date</th>
-                  <th className="whitespace-nowrap px-3 py-2.5 text-center">
-                    Cycle Done
-                  </th>
+                  <SortHeader
+                    label="Status"
+                    sortKey="status"
+                    activeKey={sortKey}
+                    dir={sortDir}
+                    onSort={toggleSort}
+                  />
+                  <SortHeader
+                    label="Name"
+                    sortKey="name"
+                    activeKey={sortKey}
+                    dir={sortDir}
+                    onSort={toggleSort}
+                  />
+                  <SortHeader
+                    label="Passport"
+                    sortKey="passport"
+                    activeKey={sortKey}
+                    dir={sortDir}
+                    onSort={toggleSort}
+                  />
+                  <SortHeader
+                    label="Masuk Dari"
+                    sortKey="masuk_dari"
+                    activeKey={sortKey}
+                    dir={sortDir}
+                    onSort={toggleSort}
+                  />
+                  <SortHeader
+                    label="Company"
+                    sortKey="company"
+                    activeKey={sortKey}
+                    dir={sortDir}
+                    onSort={toggleSort}
+                  />
+                  <SortHeader
+                    label="Visa Days"
+                    sortKey="visa_days"
+                    activeKey={sortKey}
+                    dir={sortDir}
+                    onSort={toggleSort}
+                  />
+                  <SortHeader
+                    label="Arrival Date"
+                    sortKey="date_entered"
+                    activeKey={sortKey}
+                    dir={sortDir}
+                    onSort={toggleSort}
+                  />
+                  <SortHeader
+                    label="Extension Date"
+                    sortKey="date_to_extension"
+                    activeKey={sortKey}
+                    dir={sortDir}
+                    onSort={toggleSort}
+                  />
+                  <SortHeader
+                    label="Date Extended"
+                    sortKey="date_extended"
+                    activeKey={sortKey}
+                    dir={sortDir}
+                    onSort={toggleSort}
+                  />
+                  <SortHeader
+                    label="Extension Done"
+                    sortKey="extension_done"
+                    activeKey={sortKey}
+                    dir={sortDir}
+                    onSort={toggleSort}
+                    align="center"
+                  />
+                  <SortHeader
+                    label="Leave Date"
+                    sortKey="leave_date_reminder"
+                    activeKey={sortKey}
+                    dir={sortDir}
+                    onSort={toggleSort}
+                  />
+                  <SortHeader
+                    label="Cycle Done"
+                    sortKey="cycle_done"
+                    activeKey={sortKey}
+                    dir={sortDir}
+                    onSort={toggleSort}
+                    align="center"
+                  />
                 </tr>
               </thead>
               <tbody>
@@ -457,10 +663,13 @@ function VisaList({ mode }: VisaListProps) {
                     const leaveDays = v.leave_date_reminder
                       ? daysUntilISODate(v.leave_date_reminder)
                       : null;
+                    const showExtRelative =
+                      mode === "active" && !v.extension_done;
+                    const showLeaveRelative = mode === "active";
                     return (
                       <tr
                         key={v.id}
-                        className={`cursor-pointer border-t border-slate-100 ${rowStatusClass(v.status)}`}
+                        className={`cursor-pointer border-t border-slate-100 ${rowClass(v.status, leaveDays)}`}
                         tabIndex={0}
                         role="link"
                         onClick={() => navigate(`/visas/${v.id}`)}
@@ -500,18 +709,24 @@ function VisaList({ mode }: VisaListProps) {
                           {formatDisplayDate(v.date_entered)}
                         </td>
                         <td
-                          className={`whitespace-nowrap px-3 py-2 tabular-nums ${urgencyCellClass(extDays)}`}
+                          className={`whitespace-nowrap px-3 py-2 tabular-nums ${
+                            showExtRelative
+                              ? urgencyCellClass(extDays)
+                              : "text-slate-700"
+                          }`}
                         >
                           <span className="font-medium">
                             {formatDisplayDate(v.date_to_extension)}
                           </span>
-                          <span className="ml-1 text-xs opacity-80">
-                            ({extDays < 0
-                              ? `${Math.abs(extDays)}d late`
-                              : extDays === 0
-                                ? "today"
-                                : `${extDays}d`})
-                          </span>
+                          {showExtRelative ? (
+                            <span className="ml-1 text-xs opacity-80">
+                              ({extDays < 0
+                                ? `${Math.abs(extDays)}d late`
+                                : extDays === 0
+                                  ? "today"
+                                  : `${extDays}d`})
+                            </span>
+                          ) : null}
                         </td>
                         <td className="whitespace-nowrap px-3 py-2 tabular-nums text-slate-700">
                           {v.date_extended
@@ -523,9 +738,13 @@ function VisaList({ mode }: VisaListProps) {
                         </td>
                         <td
                           className={`whitespace-nowrap px-3 py-2 tabular-nums ${
-                            leaveDays === null
+                            !v.leave_date_reminder || leaveDays === null
                               ? "text-slate-400"
-                              : urgencyCellClass(leaveDays)
+                              : leaveDays === 0
+                                ? "bg-yellow-200/80 text-yellow-900"
+                                : showLeaveRelative
+                                  ? urgencyCellClass(leaveDays)
+                                  : "text-slate-700"
                           }`}
                         >
                           {v.leave_date_reminder && leaveDays !== null ? (
@@ -533,13 +752,15 @@ function VisaList({ mode }: VisaListProps) {
                               <span className="font-medium">
                                 {formatDisplayDate(v.leave_date_reminder)}
                               </span>
-                              <span className="ml-1 text-xs opacity-80">
-                                ({leaveDays < 0
-                                  ? `${Math.abs(leaveDays)}d late`
-                                  : leaveDays === 0
-                                    ? "today"
-                                    : `${leaveDays}d`})
-                              </span>
+                              {showLeaveRelative ? (
+                                <span className="ml-1 text-xs opacity-80">
+                                  ({leaveDays < 0
+                                    ? `${Math.abs(leaveDays)}d late`
+                                    : leaveDays === 0
+                                      ? "today"
+                                      : `${leaveDays}d`})
+                                </span>
+                              ) : null}
                             </>
                           ) : (
                             "—"
