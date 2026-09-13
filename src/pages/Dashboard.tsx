@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { CompanySwatch } from "../components/CompanyChip";
 import { daysUntilISODate, formatDisplayDate } from "../lib/dates";
@@ -6,11 +6,13 @@ import {
   aggregateKpis,
   customersForCompany,
   metricsByCompany,
+  visasForCompany,
   type Kpis,
+  type VisaForMetrics,
 } from "../lib/metrics";
 import { supabase } from "../lib/supabase";
 import { kpiToneClass, urgencyClass } from "../lib/ui";
-import type { Company, CustomerWithCompany } from "../types";
+import type { Company, CustomerWithCompany, VisaStatus } from "../types";
 
 function parseISODateNum(s: string): number {
   const [y, m, d] = s.split("-").map(Number);
@@ -50,6 +52,119 @@ function KpiCard({
   return <div className={className}>{body}</div>;
 }
 
+function MetricSection({
+  title,
+  hint,
+  children,
+}: {
+  title: string;
+  hint: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className="space-y-3">
+      <div>
+        <h2 className="text-lg font-semibold text-ink">{title}</h2>
+        <p className="page-sub">{hint}</p>
+      </div>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">{children}</div>
+    </section>
+  );
+}
+
+function PassportVisaKpis({
+  kpis,
+  companyId,
+}: {
+  kpis: Kpis;
+  companyId: string | null;
+}) {
+  return (
+    <div className="space-y-6">
+      <MetricSection
+        title="Overview"
+        hint="Totals for the selected company scope."
+      >
+        <KpiCard
+          label="Customers"
+          value={kpis.customers}
+          to={kpiPath("/customers", { company: companyId })}
+        />
+        <KpiCard
+          label="Active visas"
+          value={kpis.activeVisas}
+          to={kpiPath("/visas/active", { company: companyId })}
+        />
+        <KpiCard
+          label="Archived visas"
+          value={kpis.archivedVisas}
+          to={kpiPath("/visas/archive", { company: companyId })}
+        />
+      </MetricSection>
+
+      <MetricSection
+        title="Passport"
+        hint="How many passports have expired or are approaching expiry."
+      >
+        <KpiCard
+          label="Expired"
+          value={kpis.expired}
+          tone="red"
+          to={kpiPath("/customers", { expiry: "expired", company: companyId })}
+        />
+        <KpiCard
+          label="Expiring ≤10d"
+          value={kpis.expiring10}
+          tone="amber"
+          to={kpiPath("/customers", { expiry: "10", company: companyId })}
+        />
+        <KpiCard
+          label="Expiring ≤30d"
+          value={kpis.expiring30}
+          tone="yellow"
+          to={kpiPath("/customers", { expiry: "30", company: companyId })}
+        />
+      </MetricSection>
+
+      <MetricSection
+        title="Visa"
+        hint="Active visas closing in on their extension date."
+      >
+        <KpiCard
+          label="Due today"
+          value={kpis.extToday}
+          tone="red"
+          to={kpiPath("/visas/active", {
+            urgency: "today",
+            ext: "no",
+            company: companyId,
+          })}
+        />
+        <KpiCard
+          label="Due ≤10d"
+          value={kpis.extDue10}
+          tone="amber"
+          to={kpiPath("/visas/active", {
+            urgency: "10",
+            ext: "no",
+            company: companyId,
+          })}
+        />
+        <KpiCard
+          label="Due ≤30d"
+          value={kpis.extDue30}
+          tone="yellow"
+          to={kpiPath("/visas/active", {
+            urgency: "30",
+            ext: "no",
+            company: companyId,
+          })}
+        />
+      </MetricSection>
+    </div>
+  );
+}
+
 function kpiPath(
   pathname: string,
   params: Record<string, string | null | undefined>
@@ -62,49 +177,12 @@ function kpiPath(
   return qs ? `${pathname}?${qs}` : pathname;
 }
 
-function KpiGrid({
-  kpis,
-  showCompanies,
-  companyId,
-}: {
-  kpis: Kpis;
-  showCompanies: boolean;
-  companyId: string | null;
-}) {
-  return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
-      <KpiCard
-        label="Customers"
-        value={kpis.customers}
-        to={kpiPath("/customers", { company: companyId })}
-      />
-      {showCompanies ? <KpiCard label="Companies" value={kpis.companies} /> : null}
-      <KpiCard
-        label="Passports expired"
-        value={kpis.expired}
-        tone="red"
-        to={kpiPath("/customers", { expiry: "expired", company: companyId })}
-      />
-      <KpiCard
-        label="Expiring ≤10d"
-        value={kpis.expiring10}
-        tone="amber"
-        to={kpiPath("/customers", { expiry: "10", company: companyId })}
-      />
-      <KpiCard
-        label="Expiring ≤30d"
-        value={kpis.expiring30}
-        tone="yellow"
-        to={kpiPath("/customers", { expiry: "30", company: companyId })}
-      />
-      <KpiCard
-        label="Total visas"
-        value={kpis.visas}
-        to={kpiPath("/visas/active", { company: companyId })}
-      />
-      <KpiCard label="Total extensions" value={kpis.extensions} />
-    </div>
-  );
+function companyIdFromEmbedded(
+  customers: { company_id: string } | { company_id: string }[] | null | undefined
+): string | null {
+  if (!customers) return null;
+  if (Array.isArray(customers)) return customers[0]?.company_id ?? null;
+  return customers.company_id ?? null;
 }
 
 export function Dashboard() {
@@ -113,6 +191,7 @@ export function Dashboard() {
 
   const [companies, setCompanies] = useState<Company[]>([]);
   const [customers, setCustomers] = useState<CustomerWithCompany[]>([]);
+  const [visas, setVisas] = useState<VisaForMetrics[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -120,18 +199,22 @@ export function Dashboard() {
     setLoading(true);
     setError(null);
 
-    const [coRes, cuRes] = await Promise.all([
+    const [coRes, cuRes, visaRes] = await Promise.all([
       supabase.from("companies").select("*").order("name", { ascending: true }),
       supabase
         .from("customers")
         .select("*, companies ( id, name, color )")
         .order("full_name", { ascending: true }),
+      supabase
+        .from("visas")
+        .select("status, date_to_extension, extension_done, customers ( company_id )"),
     ]);
 
     if (coRes.error) {
       setError(coRes.error.message);
       setCompanies([]);
       setCustomers([]);
+      setVisas([]);
       setLoading(false);
       return;
     }
@@ -139,12 +222,29 @@ export function Dashboard() {
       setError(cuRes.error.message);
       setCompanies((coRes.data ?? []) as Company[]);
       setCustomers([]);
+      setVisas([]);
+      setLoading(false);
+      return;
+    }
+    if (visaRes.error) {
+      setError(visaRes.error.message);
+      setCompanies((coRes.data ?? []) as Company[]);
+      setCustomers((cuRes.data ?? []) as CustomerWithCompany[]);
+      setVisas([]);
       setLoading(false);
       return;
     }
 
     setCompanies((coRes.data ?? []) as Company[]);
     setCustomers((cuRes.data ?? []) as CustomerWithCompany[]);
+    setVisas(
+      (visaRes.data ?? []).map((row) => ({
+        status: row.status as VisaStatus,
+        date_to_extension: row.date_to_extension,
+        extension_done: row.extension_done,
+        company_id: companyIdFromEmbedded(row.customers),
+      }))
+    );
     setLoading(false);
   }, []);
 
@@ -163,14 +263,19 @@ export function Dashboard() {
     [customers, focusedId]
   );
 
+  const scopedVisas = useMemo(
+    () => visasForCompany(visas, focusedId),
+    [visas, focusedId]
+  );
+
   const kpis = useMemo(
-    () => aggregateKpis(scopedCustomers, focusedId ? 1 : companies.length),
-    [scopedCustomers, focusedId, companies.length]
+    () => aggregateKpis(scopedCustomers, focusedId ? 1 : companies.length, scopedVisas),
+    [scopedCustomers, focusedId, companies.length, scopedVisas]
   );
 
   const companyRows = useMemo(
-    () => metricsByCompany(companies, customers),
-    [companies, customers]
+    () => metricsByCompany(companies, customers, visas),
+    [companies, customers, visas]
   );
 
   const sortedFocused = useMemo(() => {
@@ -228,11 +333,7 @@ export function Dashboard() {
         </div>
       ) : (
         <>
-          <KpiGrid
-            kpis={kpis}
-            showCompanies={!focusedCompany}
-            companyId={focusedId}
-          />
+          <PassportVisaKpis kpis={kpis} companyId={focusedId} />
 
           {focusedCompany ? (
             <section className="space-y-3">
@@ -293,16 +394,19 @@ export function Dashboard() {
             <section className="space-y-3">
               <h2 className="text-lg font-semibold text-ink">By company</h2>
               <div className="overflow-x-auto rounded-lg border border-line bg-surface">
-                <table className="w-full min-w-[36rem] text-left text-sm">
+                <table className="w-full min-w-[52rem] text-left text-sm">
                   <thead className="border-b border-line bg-paper text-xs font-medium uppercase tracking-wide text-muted">
                     <tr>
                       <th className="px-3 py-2.5">Company</th>
                       <th className="px-3 py-2.5 text-right">Customers</th>
-                      <th className="px-3 py-2.5 text-right">Expired</th>
-                      <th className="px-3 py-2.5 text-right">≤10d</th>
-                      <th className="px-3 py-2.5 text-right">≤30d</th>
-                      <th className="px-3 py-2.5 text-right">Visas</th>
-                      <th className="px-3 py-2.5 text-right">Ext.</th>
+                      <th className="px-3 py-2.5 text-right">Active</th>
+                      <th className="px-3 py-2.5 text-right">Archive</th>
+                      <th className="px-3 py-2.5 text-right">Pass. expired</th>
+                      <th className="px-3 py-2.5 text-right">Pass. ≤10d</th>
+                      <th className="px-3 py-2.5 text-right">Pass. ≤30d</th>
+                      <th className="px-3 py-2.5 text-right">Ext. today</th>
+                      <th className="px-3 py-2.5 text-right">Ext. ≤10d</th>
+                      <th className="px-3 py-2.5 text-right">Ext. ≤30d</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -330,6 +434,12 @@ export function Dashboard() {
                           {row.customers}
                         </td>
                         <td className="px-3 py-2.5 text-right tabular-nums text-ink-soft">
+                          {row.activeVisas}
+                        </td>
+                        <td className="px-3 py-2.5 text-right tabular-nums text-ink-soft">
+                          {row.archivedVisas}
+                        </td>
+                        <td className="px-3 py-2.5 text-right tabular-nums text-ink-soft">
                           {row.expired}
                         </td>
                         <td className="px-3 py-2.5 text-right tabular-nums text-ink-soft">
@@ -339,10 +449,13 @@ export function Dashboard() {
                           {row.expiring30}
                         </td>
                         <td className="px-3 py-2.5 text-right tabular-nums text-ink-soft">
-                          {row.visas}
+                          {row.extToday}
                         </td>
                         <td className="px-3 py-2.5 text-right tabular-nums text-ink-soft">
-                          {row.extensions}
+                          {row.extDue10}
+                        </td>
+                        <td className="px-3 py-2.5 text-right tabular-nums text-ink-soft">
+                          {row.extDue30}
                         </td>
                       </tr>
                     ))}

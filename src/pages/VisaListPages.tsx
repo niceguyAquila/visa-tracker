@@ -14,7 +14,7 @@ const PAGE_SIZE = 50;
 
 const inputClass = "input-field text-sm";
 
-type UrgencyFilter = "all" | "expired" | "10" | "30" | "ok";
+type UrgencyFilter = "all" | "expired" | "today" | "10" | "30" | "ok";
 type ExtDoneFilter = "all" | "yes" | "no";
 type ArchiveStatusFilter = "all" | "Cuti" | "Blacklist" | "Finished";
 
@@ -67,7 +67,13 @@ function addDaysISO(iso: string, days: number): string {
 }
 
 function parseUrgency(value: string | null): UrgencyFilter {
-  if (value === "expired" || value === "10" || value === "30" || value === "ok") {
+  if (
+    value === "expired" ||
+    value === "today" ||
+    value === "10" ||
+    value === "30" ||
+    value === "ok"
+  ) {
     return value;
   }
   return "all";
@@ -268,10 +274,14 @@ function VisaList({ mode }: VisaListProps) {
     const today = todayISO();
     if (urgency === "expired") {
       q = q.lt("date_to_extension", today);
+    } else if (urgency === "today") {
+      q = q.eq("date_to_extension", today);
     } else if (urgency === "10") {
-      q = q.gte("date_to_extension", today).lte("date_to_extension", addDaysISO(today, 10));
+      q = q.gt("date_to_extension", today).lte("date_to_extension", addDaysISO(today, 10));
     } else if (urgency === "30") {
-      q = q.gte("date_to_extension", today).lte("date_to_extension", addDaysISO(today, 30));
+      q = q
+        .gt("date_to_extension", addDaysISO(today, 10))
+        .lte("date_to_extension", addDaysISO(today, 30));
     } else if (urgency === "ok") {
       q = q.gt("date_to_extension", addDaysISO(today, 30));
     }
@@ -430,8 +440,9 @@ function VisaList({ mode }: VisaListProps) {
             >
               <option value="all">All</option>
               <option value="expired">Overdue</option>
-              <option value="10">Due ≤10 days</option>
-              <option value="30">Due ≤30 days</option>
+              <option value="today">Due today</option>
+              <option value="10">Due 1–10 days</option>
+              <option value="30">Due 11–30 days</option>
               <option value="ok">More than 30 days</option>
             </select>
           </label>
