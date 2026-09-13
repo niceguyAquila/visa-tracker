@@ -107,8 +107,8 @@ export function VisaFields({
         />
       </label>
 
-      <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+      <div className="rounded-lg border border-line bg-paper px-3 py-3">
+        <p className="meta">
           Timeline
         </p>
         <ol className="mt-3 grid gap-3 sm:grid-cols-3 sm:gap-4">
@@ -142,13 +142,13 @@ export function VisaFields({
         <button
           type="button"
           onClick={() => setMoreOpen((o) => !o)}
-          className="text-sm font-medium text-blue-600 hover:underline"
+          className="link-brand text-sm"
         >
           {moreOpen ? "Hide more details" : "More details"}
         </button>
 
         {moreOpen ? (
-          <div className="space-y-4 rounded-lg border border-slate-200 bg-white p-3">
+          <div className="space-y-4 rounded-lg border border-line bg-surface p-3">
             <div>
               <div className="grid gap-4 sm:grid-cols-2 sm:items-start">
                 <label className="block">
@@ -172,14 +172,14 @@ export function VisaFields({
                     }
                     className={`mt-1 flex h-[42px] w-full items-center justify-between rounded-lg border px-3 text-sm font-medium transition ${
                       value.extensionDone
-                        ? "border-emerald-200 bg-emerald-50 text-emerald-900"
-                        : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                        ? "border-success-ink/20 bg-success-soft text-success-ink"
+                        : "border-line bg-surface text-ink-soft hover:bg-paper"
                     }`}
                   >
                     <span>{value.extensionDone ? "Yes" : "No"}</span>
                     <span
                       className={`relative inline-flex h-6 w-11 shrink-0 rounded-full transition ${
-                        value.extensionDone ? "bg-emerald-500" : "bg-slate-300"
+                        value.extensionDone ? "bg-brand" : "bg-line-strong"
                       }`}
                     >
                       <span
@@ -191,7 +191,7 @@ export function VisaFields({
                   </button>
                 </div>
               </div>
-              <p className="mt-1 text-xs text-slate-500">
+              <p className="mt-1 text-xs text-muted">
                 Setting a date marks extension as done. You can still toggle that
                 manually.
               </p>
@@ -216,11 +216,11 @@ function TimelineStep({
 }) {
   return (
     <li className="min-w-0">
-      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+      <p className="meta">
         {label}
       </p>
-      <p className="mt-1 text-sm font-medium text-slate-900">{value}</p>
-      {hint ? <p className="mt-0.5 text-xs text-slate-500">{hint}</p> : null}
+      <p className="mt-1 text-sm font-medium text-ink">{value}</p>
+      {hint ? <p className="mt-0.5 text-xs text-muted">{hint}</p> : null}
     </li>
   );
 }

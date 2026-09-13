@@ -1,5 +1,4 @@
 import {
-  companyChipClass,
   companySwatchClass,
 } from "../lib/companyColor";
 
@@ -14,7 +13,7 @@ export function CompanyChip({
 }) {
   return (
     <span
-      className={`inline-flex max-w-full items-center gap-1.5 rounded-md px-2 py-0.5 text-sm font-medium ${companyChipClass(color)} ${className}`}
+      className={`inline-flex max-w-full items-center gap-1.5 rounded-md border border-line bg-surface px-2 py-0.5 text-sm font-medium text-ink ${className}`}
     >
       <span
         className={`size-2 shrink-0 rounded-full ${companySwatchClass(color)}`}

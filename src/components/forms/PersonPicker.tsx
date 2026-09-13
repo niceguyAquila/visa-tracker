@@ -86,11 +86,11 @@ export function PersonPicker({
       <div ref={rootRef} className="relative block">
         <FieldLabel required={!disabled}>Customer</FieldLabel>
         {customers.length === 0 ? (
-          <p className="mt-1 text-sm text-slate-600">
+          <p className="mt-1 text-sm text-muted">
             No customers yet.{" "}
             <Link
               to={emptyHintHref}
-              className="font-medium text-blue-600 hover:underline"
+              className="link-brand"
             >
               Create a customer
             </Link>{" "}
@@ -127,7 +127,7 @@ export function PersonPicker({
                 <button
                   type="button"
                   onClick={clear}
-                  className="absolute top-1/2 right-2 -translate-y-1/2 rounded px-2 py-1 text-xs font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+                  className="absolute top-1/2 right-2 -translate-y-1/2 rounded px-2 py-1 text-xs font-medium text-muted hover:bg-paper hover:text-ink"
                 >
                   Clear
                 </button>
@@ -137,10 +137,10 @@ export function PersonPicker({
               <ul
                 id="customer-combobox-list"
                 role="listbox"
-                className="absolute z-20 mt-1 max-h-56 w-full overflow-auto rounded-lg border border-slate-200 bg-white py-1 shadow-lg"
+                className="absolute z-20 mt-1 max-h-56 w-full overflow-auto rounded-lg border border-line bg-surface py-1 shadow-lg"
               >
                 {filtered.length === 0 ? (
-                  <li className="px-3 py-2 text-sm text-slate-500">
+                  <li className="px-3 py-2 text-sm text-muted">
                     No matches
                   </li>
                 ) : (
@@ -148,15 +148,15 @@ export function PersonPicker({
                     <li key={c.id} role="option" aria-selected={c.id === customerId}>
                       <button
                         type="button"
-                        className={`flex w-full flex-col items-start px-3 py-2 text-left text-sm hover:bg-slate-50 ${
-                          c.id === customerId ? "bg-blue-50" : ""
+                        className={`flex w-full flex-col items-start px-3 py-2 text-left text-sm hover:bg-paper ${
+                          c.id === customerId ? "bg-brand-soft" : ""
                         }`}
                         onClick={() => pick(c)}
                       >
-                        <span className="font-medium text-slate-900">
+                        <span className="font-medium text-ink">
                           {c.full_name}
                         </span>
-                        <span className="text-xs text-slate-500">
+                        <span className="text-xs text-muted">
                           {c.passport_number}
                           {c.companies?.name ? ` · ${c.companies.name}` : ""}
                         </span>
@@ -174,19 +174,19 @@ export function PersonPicker({
       {selected && !disabled ? (
         <div className="grid gap-3 sm:grid-cols-3">
           <div>
-            <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+            <span className="meta">
               Name
             </span>
             <p className={readOnlyClass}>{selected.full_name}</p>
           </div>
           <div>
-            <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+            <span className="meta">
               Passport
             </span>
             <p className={readOnlyClass}>{selected.passport_number}</p>
           </div>
           <div>
-            <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+            <span className="meta">
               Company
             </span>
             <p className={readOnlyClass}>{selected.companies?.name ?? "—"}</p>

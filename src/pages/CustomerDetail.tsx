@@ -3,29 +3,8 @@ import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { CompanyChip } from "../components/CompanyChip";
 import { supabase } from "../lib/supabase";
 import { daysUntilISODate, formatDisplayDate } from "../lib/dates";
-import type { CustomerWithCompany, Visa, VisaStatus } from "../types";
-
-function urgencyClass(days: number): string {
-  if (days < 0) return "bg-red-100 text-red-900";
-  if (days <= 10) return "bg-amber-100 text-amber-900";
-  if (days <= 30) return "bg-yellow-50 text-yellow-900";
-  return "bg-slate-100 text-slate-700";
-}
-
-function statusBadgeClass(status: VisaStatus): string {
-  switch (status) {
-    case "In-Progress":
-      return "bg-blue-100 text-blue-900";
-    case "Cuti":
-      return "bg-violet-100 text-violet-900";
-    case "Blacklist":
-      return "bg-red-100 text-red-900";
-    case "Finished":
-      return "bg-slate-100 text-slate-700";
-    default:
-      return "bg-slate-100 text-slate-700";
-  }
-}
+import { statusBadgeClass, urgencyClass } from "../lib/ui";
+import type { CustomerWithCompany, Visa } from "../types";
 
 export function CustomerDetail() {
   const { id } = useParams();
@@ -100,14 +79,14 @@ export function CustomerDetail() {
   if (!id) return null;
 
   if (loading) {
-    return <p className="text-slate-500">Loading…</p>;
+    return <p className="text-muted">Loading…</p>;
   }
 
   if (!customer) {
     return (
       <div className="space-y-2">
-        <p className="text-red-600">{error ?? "Not found"}</p>
-        <Link to="/customers" className="text-sm font-medium text-blue-600 hover:underline">
+        <p className="text-red-700">{error ?? "Not found"}</p>
+        <Link to="/customers" className="link-brand text-sm">
           ← Back to list
         </Link>
       </div>
@@ -119,22 +98,22 @@ export function CustomerDetail() {
   return (
     <div className="space-y-6">
       {flashSuccess ? (
-        <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
+        <p className="flash-success">
           {flashSuccess}
         </p>
       ) : null}
       {flashError ? (
-        <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+        <p className="flash-error">
           {flashError}
         </p>
       ) : null}
       <div>
-        <Link to="/customers" className="text-sm font-medium text-blue-600 hover:underline">
+        <Link to="/customers" className="link-brand text-sm">
           ← Customers
         </Link>
         <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h1 className="text-2xl font-semibold text-slate-900">{customer.full_name}</h1>
+            <h1 className="page-title">{customer.full_name}</h1>
             <div className="mt-1">
               {customer.companies ? (
                 <CompanyChip
@@ -142,21 +121,21 @@ export function CustomerDetail() {
                   color={customer.companies.color}
                 />
               ) : (
-                <p className="text-slate-600">—</p>
+                <p className="text-muted">—</p>
               )}
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
             <Link
               to={`/customers/${id}/edit`}
-              className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50"
+              className="btn-ghost"
             >
               Edit
             </Link>
             <button
               type="button"
               onClick={() => void removeCustomer()}
-              className="rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50"
+              className="btn-danger"
             >
               Delete customer
             </button>
@@ -164,18 +143,18 @@ export function CustomerDetail() {
         </div>
       </div>
 
-      {error ? <p className="text-sm text-red-600">{error}</p> : null}
+      {error ? <p className="text-sm text-red-700">{error}</p> : null}
 
-      <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+      <section className="panel p-4">
         <dl className="grid gap-4 sm:grid-cols-2">
           <div>
-            <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">
+            <dt className="meta">
               Passport number
             </dt>
-            <dd className="mt-1 text-slate-900">{customer.passport_number}</dd>
+            <dd className="mt-1 text-ink">{customer.passport_number}</dd>
           </div>
           <div>
-            <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">
+            <dt className="meta">
               Passport expiry
             </dt>
             <dd className="mt-1">
@@ -194,37 +173,37 @@ export function CustomerDetail() {
             </dd>
           </div>
           <div>
-            <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">
+            <dt className="meta">
               Visa count
             </dt>
-            <dd className="mt-1 text-slate-900">{customer.visa_count}</dd>
+            <dd className="mt-1 text-ink">{customer.visa_count}</dd>
           </div>
           <div>
-            <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">
+            <dt className="meta">
               Extension count
             </dt>
-            <dd className="mt-1 text-slate-900">{customer.extension_count}</dd>
+            <dd className="mt-1 text-ink">{customer.extension_count}</dd>
           </div>
           <div className="sm:col-span-2">
-            <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">
+            <dt className="meta">
               Contact number
             </dt>
-            <dd className="mt-1 text-slate-900">{customer.contact_number || "—"}</dd>
+            <dd className="mt-1 text-ink">{customer.contact_number || "—"}</dd>
           </div>
         </dl>
       </section>
 
       <section className="space-y-3">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <h2 className="text-lg font-semibold text-slate-900">Visas</h2>
+          <h2 className="text-lg font-semibold text-ink">Visas</h2>
           {visas.some((v) => v.status === "In-Progress") ? (
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-muted">
               An In-Progress visa already exists for this customer.
             </p>
           ) : (
             <Link
               to={`/visas/new?customer=${id}`}
-              className="rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 sm:w-auto"
+              className="btn-primary sm:w-auto"
             >
               Add visa
             </Link>
@@ -232,7 +211,7 @@ export function CustomerDetail() {
         </div>
 
         {visas.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-slate-200 bg-white p-6 text-center text-slate-600">
+          <div className="empty-state p-6">
             No visas for this customer yet.
           </div>
         ) : (
@@ -241,18 +220,18 @@ export function CustomerDetail() {
               <li key={v.id}>
                 <Link
                   to={`/visas/${v.id}`}
-                  className="block rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-slate-300"
+                  className="list-card"
                 >
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                      <p className="font-medium text-slate-900">{v.visa_days}</p>
-                      <p className="text-sm text-slate-500">
+                      <p className="font-medium text-ink">{v.visa_days}</p>
+                      <p className="text-sm text-muted">
                         Entered {formatDisplayDate(v.date_entered)} · Extension{" "}
                         {formatDisplayDate(v.date_to_extension)}
                       </p>
                     </div>
                     <span
-                      className={`inline-flex w-fit rounded-lg px-2.5 py-1 text-xs font-medium ${statusBadgeClass(v.status)}`}
+                      className={`inline-flex w-fit rounded-md px-2.5 py-1 text-xs font-medium ${statusBadgeClass(v.status)}`}
                     >
                       {v.status}
                     </span>

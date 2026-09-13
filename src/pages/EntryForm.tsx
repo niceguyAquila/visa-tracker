@@ -294,14 +294,14 @@ export function EntryForm({ defaultMode }: EntryFormProps) {
     if (mode === "personAndVisa" || mode === "personOnly") {
       if (companies.length > 0) return null;
       return (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+        <div className="callout-warn">
           <p className="font-medium">Add a company first</p>
-          <p className="mt-1 text-amber-900/80">
+          <p className="mt-1 opacity-80">
             Customers must belong to a company before you can create them.
           </p>
           <Link
             to="/companies"
-            className="mt-2 inline-block font-medium text-blue-700 hover:underline"
+            className="link-brand mt-2 inline-block"
           >
             Go to companies →
           </Link>
@@ -310,15 +310,15 @@ export function EntryForm({ defaultMode }: EntryFormProps) {
     }
     if (customers.length > 0) return null;
     return (
-      <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+      <div className="callout-warn">
         <p className="font-medium">Add a customer first</p>
-        <p className="mt-1 text-amber-900/80">
+        <p className="mt-1 opacity-80">
           Visa only needs an existing customer to attach the visa to.
         </p>
         <button
           type="button"
           onClick={() => requestModeChange("personAndVisa")}
-          className="mt-2 font-medium text-blue-700 hover:underline"
+          className="link-brand mt-2"
         >
           Create customer & visa instead →
         </button>
@@ -451,8 +451,8 @@ export function EntryForm({ defaultMode }: EntryFormProps) {
   if (loadError) {
     return (
       <div className="space-y-2">
-        <p className="text-sm text-red-600">{loadError}</p>
-        <Link to={backHref()} className="text-sm font-medium text-blue-600 hover:underline">
+        <p className="text-sm text-red-700">{loadError}</p>
+        <Link to={backHref()} className="link-brand text-sm">
           ← Back
         </Link>
       </div>
@@ -471,26 +471,26 @@ export function EntryForm({ defaultMode }: EntryFormProps) {
       <div>
         <Link
           to={backHref()}
-          className="text-sm font-medium text-blue-600 hover:underline"
+          className="link-brand text-sm"
         >
           ← Back
         </Link>
-        <h1 className="mt-2 text-2xl font-semibold text-slate-900">New entry</h1>
-        <p className="mt-1 text-sm text-slate-600">
+        <h1 className="page-title mt-2">New entry</h1>
+        <p className="page-sub mt-1">
           Create a customer, a visa, or both.
         </p>
       </div>
 
       <form
         onSubmit={onSubmit}
-        className="space-y-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"
+        className="panel space-y-6 p-5 sm:p-6"
       >
         <div>
-          <span className="text-sm font-medium text-slate-700">What to create</span>
+          <span className="text-sm font-medium text-ink-soft">What to create</span>
           <div
             role="radiogroup"
             aria-label="Create mode"
-            className="mt-1 flex flex-col gap-1 rounded-lg border border-slate-200 bg-slate-100 p-1 sm:flex-row"
+            className="mt-1 flex flex-col gap-1 rounded-lg border border-line bg-paper p-1 sm:flex-row"
           >
             {MODE_OPTIONS.map((opt) => {
               const active = mode === opt.id;
@@ -501,10 +501,10 @@ export function EntryForm({ defaultMode }: EntryFormProps) {
                   role="radio"
                   aria-checked={active}
                   onClick={() => requestModeChange(opt.id)}
-                  className={`flex-1 rounded-md px-2 py-2.5 text-center text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 ${
+                  className={`flex-1 rounded-md px-2 py-2.5 text-center text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/30 ${
                     active
-                      ? "bg-white text-blue-700 shadow-sm"
-                      : "text-slate-600 hover:bg-white hover:text-slate-900"
+                      ? "bg-surface text-brand-ink shadow-sm"
+                      : "text-muted hover:bg-surface hover:text-ink"
                   }`}
                 >
                   {opt.label}
@@ -512,7 +512,7 @@ export function EntryForm({ defaultMode }: EntryFormProps) {
               );
             })}
           </div>
-          <p className="mt-2 text-sm text-slate-500">{modeHint()}</p>
+          <p className="mt-2 text-sm text-muted">{modeHint()}</p>
         </div>
 
         {blockedCallout()}
@@ -556,7 +556,7 @@ export function EntryForm({ defaultMode }: EntryFormProps) {
                     mode === "personAndVisa" ? (
                       <>
                         Starts as{" "}
-                        <span className="font-medium text-slate-800">
+                        <span className="font-medium text-ink">
                           In-Progress
                         </span>{" "}
                         (Active list).
@@ -588,21 +588,21 @@ export function EntryForm({ defaultMode }: EntryFormProps) {
         ) : null}
 
         {errors.form ? (
-          <p className="text-sm text-red-600">{errors.form}</p>
+          <p className="text-sm text-red-700">{errors.form}</p>
         ) : null}
 
-        <div className="fixed inset-x-0 bottom-[calc(2.75rem+env(safe-area-inset-bottom))] z-30 border-t border-slate-200 bg-white/95 py-3 backdrop-blur sm:sticky sm:inset-x-auto sm:bottom-0 sm:-mx-6 sm:border-slate-200 sm:px-6">
-          <div className="mx-auto flex max-w-3xl flex-col-reverse gap-2 px-4 sm:px-0 sm:flex-row sm:justify-end">
+        <div className="fixed inset-x-0 bottom-[calc(2.75rem+env(safe-area-inset-bottom))] z-30 border-t border-line bg-surface/95 py-3 backdrop-blur md:sticky md:inset-x-auto md:bottom-0 md:-mx-6 md:border-line md:px-6">
+          <div className="mx-auto flex max-w-7xl flex-col-reverse gap-2 px-4 sm:flex-row sm:justify-end md:px-0">
             <Link
               to={backHref()}
-              className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              className="btn-ghost"
             >
               Cancel
             </Link>
             <button
               type="submit"
               disabled={submitDisabled()}
-              className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60"
+              className="btn-primary"
             >
               {busy ? "Saving…" : submitLabel()}
             </button>
@@ -617,20 +617,20 @@ function EntryFormSkeleton() {
   return (
     <div className="space-y-6 animate-pulse">
       <div>
-        <div className="h-4 w-16 rounded bg-slate-200" />
-        <div className="mt-3 h-8 w-40 rounded bg-slate-200" />
-        <div className="mt-2 h-4 w-64 rounded bg-slate-100" />
+        <div className="h-4 w-16 rounded bg-line" />
+        <div className="mt-3 h-8 w-40 rounded bg-line" />
+        <div className="mt-2 h-4 w-64 rounded bg-ok-soft" />
       </div>
-      <div className="space-y-4 rounded-xl border border-slate-200 bg-white p-5 sm:p-6">
-        <div className="h-10 rounded-lg bg-slate-100" />
-        <div className="h-4 w-48 rounded bg-slate-100" />
-        <div className="space-y-3 border-t border-slate-100 pt-5">
-          <div className="h-5 w-28 rounded bg-slate-200" />
-          <div className="h-10 rounded-lg bg-slate-100" />
-          <div className="h-10 rounded-lg bg-slate-100" />
+      <div className="panel space-y-4 p-5 sm:p-6">
+        <div className="h-10 rounded-lg bg-ok-soft" />
+        <div className="h-4 w-48 rounded bg-ok-soft" />
+        <div className="space-y-3 border-t border-line pt-5">
+          <div className="h-5 w-28 rounded bg-line" />
+          <div className="h-10 rounded-lg bg-ok-soft" />
+          <div className="h-10 rounded-lg bg-ok-soft" />
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="h-10 rounded-lg bg-slate-100" />
-            <div className="h-10 rounded-lg bg-slate-100" />
+            <div className="h-10 rounded-lg bg-ok-soft" />
+            <div className="h-10 rounded-lg bg-ok-soft" />
           </div>
         </div>
       </div>

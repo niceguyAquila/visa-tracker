@@ -3,23 +3,16 @@ import { Link, useSearchParams } from "react-router-dom";
 import { CompanyChip } from "../components/CompanyChip";
 import { supabase } from "../lib/supabase";
 import { daysUntilISODate, formatDisplayDate } from "../lib/dates";
+import { urgencyClass } from "../lib/ui";
 import type { CustomerWithCompany } from "../types";
 
-const inputClass =
-  "w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200";
+const inputClass = "input-field text-sm";
 
 type ExpiryFilter = "all" | "expired" | "10" | "30" | "ok";
 
 function parseISODateNum(s: string): number {
   const [y, m, d] = s.split("-").map(Number);
   return Date.UTC(y, m - 1, d);
-}
-
-function urgencyClass(days: number): string {
-  if (days < 0) return "bg-red-100 text-red-900";
-  if (days <= 10) return "bg-amber-100 text-amber-900";
-  if (days <= 30) return "bg-yellow-50 text-yellow-900";
-  return "bg-slate-100 text-slate-700";
 }
 
 function parseExpiryFilter(value: string | null): ExpiryFilter {
@@ -126,8 +119,8 @@ export function CustomersPage() {
   return (
     <div className="space-y-6 pb-16">
       <div>
-        <h1 className="text-2xl font-semibold text-slate-900">Customers</h1>
-        <p className="text-sm text-slate-600">
+        <h1 className="page-title">Customers</h1>
+        <p className="page-sub">
           Track passport expiry dates by company.
         </p>
       </div>
@@ -135,7 +128,7 @@ export function CustomersPage() {
       <Link
         to="/customers/new"
         aria-label="Add customer"
-        className="fixed z-50 flex size-14 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg hover:bg-blue-700 right-4 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] sm:right-6 sm:bottom-6"
+        className="fab-add"
       >
         <svg
           viewBox="0 0 24 24"
@@ -148,22 +141,22 @@ export function CustomersPage() {
       </Link>
 
       {loading ? (
-        <p className="text-slate-500">Loading…</p>
+        <p className="text-muted">Loading…</p>
       ) : error ? (
-        <p className="text-sm text-red-600">{error}</p>
+        <p className="text-sm text-red-700">{error}</p>
       ) : rows.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-slate-200 bg-white p-8 text-center text-slate-600">
+        <div className="empty-state">
           No customers yet.{" "}
-          <Link to="/companies" className="font-medium text-blue-600 hover:underline">
+          <Link to="/companies" className="link-brand">
             Add a company
           </Link>{" "}
           then create a customer.
         </div>
       ) : (
         <>
-          <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="filter-panel">
             <label className="block text-sm">
-              <span className="mb-1 block font-medium text-slate-600">Search</span>
+              <span className="mb-1 block font-medium text-ink-soft">Search</span>
               <input
                 type="search"
                 className={inputClass}
@@ -174,7 +167,7 @@ export function CustomersPage() {
             </label>
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="block text-sm">
-                <span className="mb-1 block font-medium text-slate-600">Company</span>
+                <span className="mb-1 block font-medium text-ink-soft">Company</span>
                 <select
                   className={inputClass}
                   value={companyId}
@@ -189,7 +182,7 @@ export function CustomersPage() {
                 </select>
               </label>
               <label className="block text-sm">
-                <span className="mb-1 block font-medium text-slate-600">
+                <span className="mb-1 block font-medium text-ink-soft">
                   Passport expiry
                 </span>
                 <select
@@ -211,7 +204,7 @@ export function CustomersPage() {
             </div>
           </div>
 
-          <div className="flex items-center justify-between gap-3 text-sm text-slate-600">
+          <div className="flex items-center justify-between gap-3 text-sm text-muted">
             <p>
               {filtered.length === rows.length
                 ? `${rows.length} customer${rows.length === 1 ? "" : "s"}`
@@ -221,7 +214,7 @@ export function CustomersPage() {
               <button
                 type="button"
                 onClick={clearFilters}
-                className="font-medium text-blue-600 hover:underline"
+                className="link-brand"
               >
                 Clear filters
               </button>
@@ -229,12 +222,12 @@ export function CustomersPage() {
           </div>
 
           {filtered.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-slate-200 bg-white p-8 text-center text-slate-600">
+            <div className="empty-state">
               No customers match these filters.{" "}
               <button
                 type="button"
                 onClick={clearFilters}
-                className="font-medium text-blue-600 hover:underline"
+                className="link-brand"
               >
                 Clear filters
               </button>
@@ -247,14 +240,14 @@ export function CustomersPage() {
                   <li key={c.id}>
                     <Link
                       to={`/customers/${c.id}`}
-                      className="block rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-slate-300"
+                      className="list-card"
                     >
                       <div className="space-y-2">
                         <div className="flex items-start justify-between gap-3">
-                          <p className="min-w-0 font-medium text-slate-900">
+                          <p className="min-w-0 font-medium text-ink">
                             {c.full_name}
                           </p>
-                          <p className="shrink-0 text-right text-sm text-slate-500">
+                          <p className="shrink-0 text-right text-sm text-muted">
                             {c.companies ? (
                               <CompanyChip
                                 name={c.companies.name}
@@ -266,16 +259,16 @@ export function CustomersPage() {
                           </p>
                         </div>
                         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                          <p className="font-mono text-sm text-slate-700">
+                          <p className="font-mono text-sm text-ink-soft">
                             {c.passport_number}
                           </p>
                           <div
                             className={`inline-flex flex-col rounded-lg px-3 py-2 text-sm sm:items-end ${urgencyClass(d)}`}
                           >
-                            <span className="text-xs font-medium uppercase tracking-wide opacity-80">
+                            <span className="meta opacity-80">
                               Passport expiry
                             </span>
-                            <span className="font-medium">
+                            <span className="font-medium tabular-nums">
                               {formatDisplayDate(c.passport_expiry)}
                             </span>
                             <span className="text-xs opacity-90">

@@ -9,30 +9,12 @@ import {
   type Kpis,
 } from "../lib/metrics";
 import { supabase } from "../lib/supabase";
+import { kpiToneClass, urgencyClass } from "../lib/ui";
 import type { Company, CustomerWithCompany } from "../types";
 
 function parseISODateNum(s: string): number {
   const [y, m, d] = s.split("-").map(Number);
   return Date.UTC(y, m - 1, d);
-}
-
-function urgencyClass(days: number): string {
-  if (days < 0) return "bg-red-100 text-red-900";
-  if (days <= 10) return "bg-amber-100 text-amber-900";
-  if (days <= 30) return "bg-yellow-50 text-yellow-900";
-  return "bg-slate-100 text-slate-700";
-}
-
-function kpiPath(
-  pathname: string,
-  params: Record<string, string | null | undefined>
-): string {
-  const search = new URLSearchParams();
-  for (const [key, value] of Object.entries(params)) {
-    if (value) search.set(key, value);
-  }
-  const qs = search.toString();
-  return qs ? `${pathname}?${qs}` : pathname;
 }
 
 function KpiCard({
@@ -46,25 +28,14 @@ function KpiCard({
   tone?: "red" | "amber" | "yellow";
   to?: string;
 }) {
-  const toneClass =
-    tone === "red"
-      ? "border-red-200 bg-red-50"
-      : tone === "amber"
-        ? "border-amber-200 bg-amber-50"
-        : tone === "yellow"
-          ? "border-yellow-200 bg-yellow-50"
-          : "border-slate-200 bg-white";
-
-  const className = `rounded-xl border p-4 shadow-sm ${toneClass}${
-    to ? " block transition hover:border-slate-300" : ""
+  const className = `rounded-lg border px-4 py-3 ${kpiToneClass(tone)}${
+    to ? " block transition hover:border-line-strong" : ""
   }`;
 
   const body = (
     <>
-      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-        {label}
-      </p>
-      <p className="mt-1 text-2xl font-semibold text-slate-900">{value}</p>
+      <p className="meta">{label}</p>
+      <p className="mt-1 text-2xl font-semibold tabular-nums text-ink">{value}</p>
     </>
   );
 
@@ -79,6 +50,18 @@ function KpiCard({
   return <div className={className}>{body}</div>;
 }
 
+function kpiPath(
+  pathname: string,
+  params: Record<string, string | null | undefined>
+): string {
+  const search = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value) search.set(key, value);
+  }
+  const qs = search.toString();
+  return qs ? `${pathname}?${qs}` : pathname;
+}
+
 function KpiGrid({
   kpis,
   showCompanies,
@@ -89,7 +72,7 @@ function KpiGrid({
   companyId: string | null;
 }) {
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
       <KpiCard
         label="Customers"
         value={kpis.customers}
@@ -205,8 +188,8 @@ export function Dashboard() {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-slate-900">Dashboard</h1>
-          <p className="text-sm text-slate-600">
+          <h1 className="page-title">Dashboard</h1>
+          <p className="page-sub">
             {focusedCompany
               ? `Metrics for ${focusedCompany.name}`
               : "Metrics across all companies."}
@@ -214,9 +197,9 @@ export function Dashboard() {
         </div>
         {companies.length > 0 ? (
           <label className="block text-sm sm:min-w-56">
-            <span className="mb-1 block font-medium text-slate-600">Company</span>
+            <span className="mb-1 block font-medium text-ink-soft">Company</span>
             <select
-              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+              className="input-field text-sm"
               value={focusedId ?? ""}
               onChange={(e) => setFocusedCompany(e.target.value || null)}
             >
@@ -232,13 +215,13 @@ export function Dashboard() {
       </div>
 
       {loading ? (
-        <p className="text-slate-500">Loading…</p>
+        <p className="text-muted">Loading…</p>
       ) : error ? (
-        <p className="text-sm text-red-600">{error}</p>
+        <p className="text-sm text-red-700">{error}</p>
       ) : companies.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-slate-200 bg-white p-8 text-center text-slate-600">
+        <div className="empty-state">
           No companies yet.{" "}
-          <Link to="/companies" className="font-medium text-blue-600 hover:underline">
+          <Link to="/companies" className="link-brand">
             Add a company
           </Link>{" "}
           to start tracking metrics.
@@ -254,25 +237,22 @@ export function Dashboard() {
           {focusedCompany ? (
             <section className="space-y-3">
               <div className="flex items-center justify-between gap-3">
-                <h2 className="flex items-center gap-2 text-lg font-semibold text-slate-900">
+                <h2 className="flex items-center gap-2 text-lg font-semibold text-ink">
                   <CompanySwatch color={focusedCompany.color} className="size-3.5" />
                   Customers at {focusedCompany.name}
                 </h2>
                 <button
                   type="button"
                   onClick={() => setFocusedCompany(null)}
-                  className="text-sm font-medium text-blue-600 hover:underline"
+                  className="link-brand text-sm"
                 >
                   All companies
                 </button>
               </div>
               {sortedFocused.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-slate-200 bg-white p-8 text-center text-slate-600">
+                <div className="empty-state">
                   No customers at this company yet.{" "}
-                  <Link
-                    to="/customers/new"
-                    className="font-medium text-blue-600 hover:underline"
-                  >
+                  <Link to="/customers/new" className="link-brand">
                     Add a customer
                   </Link>
                   .
@@ -283,17 +263,15 @@ export function Dashboard() {
                     const d = daysUntilISODate(c.passport_expiry);
                     return (
                       <li key={c.id}>
-                        <Link
-                          to={`/customers/${c.id}`}
-                          className="block rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-slate-300"
-                        >
+                        <Link to={`/customers/${c.id}`} className="list-card">
                           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                            <p className="font-medium text-slate-900">{c.full_name}</p>
+                            <p className="font-medium text-ink">{c.full_name}</p>
                             <div
                               className={`inline-flex flex-col rounded-lg px-3 py-2 text-sm sm:items-end ${urgencyClass(d)}`}
                             >
-                              <span className="font-medium">
-                                Passport · {formatDisplayDate(c.passport_expiry)}
+                              <span className="meta opacity-80">Passport</span>
+                              <span className="font-medium tabular-nums">
+                                {formatDisplayDate(c.passport_expiry)}
                               </span>
                               <span className="text-xs opacity-90">
                                 {d < 0
@@ -313,10 +291,10 @@ export function Dashboard() {
             </section>
           ) : (
             <section className="space-y-3">
-              <h2 className="text-lg font-semibold text-slate-900">By company</h2>
-              <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+              <h2 className="text-lg font-semibold text-ink">By company</h2>
+              <div className="overflow-x-auto rounded-lg border border-line bg-surface">
                 <table className="w-full min-w-[36rem] text-left text-sm">
-                  <thead className="border-b border-slate-200 bg-slate-50 text-xs font-medium uppercase tracking-wide text-slate-500">
+                  <thead className="border-b border-line bg-paper text-xs font-medium uppercase tracking-wide text-muted">
                     <tr>
                       <th className="px-3 py-2.5">Company</th>
                       <th className="px-3 py-2.5 text-right">Customers</th>
@@ -331,7 +309,7 @@ export function Dashboard() {
                     {companyRows.map((row) => (
                       <tr
                         key={row.companyId}
-                        className="cursor-pointer border-t border-slate-100 hover:bg-slate-50"
+                        className="cursor-pointer border-t border-line/80 hover:bg-paper"
                         tabIndex={0}
                         role="button"
                         onClick={() => setFocusedCompany(row.companyId)}
@@ -342,28 +320,28 @@ export function Dashboard() {
                           }
                         }}
                       >
-                        <td className="px-3 py-2.5 font-medium text-slate-900">
+                        <td className="px-3 py-2.5 font-medium text-ink">
                           <span className="inline-flex items-center gap-2">
                             <CompanySwatch color={row.color} />
                             {row.name}
                           </span>
                         </td>
-                        <td className="px-3 py-2.5 text-right tabular-nums text-slate-700">
+                        <td className="px-3 py-2.5 text-right tabular-nums text-ink-soft">
                           {row.customers}
                         </td>
-                        <td className="px-3 py-2.5 text-right tabular-nums text-slate-700">
+                        <td className="px-3 py-2.5 text-right tabular-nums text-ink-soft">
                           {row.expired}
                         </td>
-                        <td className="px-3 py-2.5 text-right tabular-nums text-slate-700">
+                        <td className="px-3 py-2.5 text-right tabular-nums text-ink-soft">
                           {row.expiring10}
                         </td>
-                        <td className="px-3 py-2.5 text-right tabular-nums text-slate-700">
+                        <td className="px-3 py-2.5 text-right tabular-nums text-ink-soft">
                           {row.expiring30}
                         </td>
-                        <td className="px-3 py-2.5 text-right tabular-nums text-slate-700">
+                        <td className="px-3 py-2.5 text-right tabular-nums text-ink-soft">
                           {row.visas}
                         </td>
-                        <td className="px-3 py-2.5 text-right tabular-nums text-slate-700">
+                        <td className="px-3 py-2.5 text-right tabular-nums text-ink-soft">
                           {row.extensions}
                         </td>
                       </tr>
@@ -371,7 +349,7 @@ export function Dashboard() {
                   </tbody>
                 </table>
               </div>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-muted">
                 Select a company above or click a row to focus its metrics.
               </p>
             </section>

@@ -59,7 +59,7 @@ export function PersonFields({
   return (
     <div className={`space-y-5 ${blocked ? "pointer-events-none opacity-50" : ""}`}>
       <div className="space-y-4">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+        <p className="meta">
           Identity
         </p>
         <label className="block">
@@ -77,11 +77,11 @@ export function PersonFields({
         <label className="block">
           <FieldLabel required>Company</FieldLabel>
           {companies.length === 0 ? (
-            <p className="mt-1 text-sm text-slate-600">
+            <p className="mt-1 text-sm text-muted">
               No companies yet.{" "}
               <Link
                 to="/companies"
-                className="font-medium text-blue-600 hover:underline"
+                className="link-brand"
               >
                 Create a company
               </Link>{" "}
@@ -105,9 +105,9 @@ export function PersonFields({
           )}
           <FieldError message={errors.companyId} />
           {companies.length > 0 ? (
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-1 text-xs text-muted">
               Need another?{" "}
-              <Link to="/companies" className="text-blue-600 hover:underline">
+              <Link to="/companies" className="link-brand">
                 Manage companies
               </Link>
             </p>
@@ -127,8 +127,8 @@ export function PersonFields({
         </div>
       </div>
 
-      <div className="space-y-4 border-t border-slate-200 pt-5">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+      <div className="space-y-4 border-t border-line pt-5">
+        <p className="meta">
           Passport
         </p>
         <div className="grid gap-4 sm:grid-cols-2">
@@ -158,11 +158,11 @@ export function PersonFields({
         </div>
       </div>
 
-      <div className="space-y-3 border-t border-slate-200 pt-5">
+      <div className="space-y-3 border-t border-line pt-5">
         <button
           type="button"
           onClick={() => setHistoryOpen((o) => !o)}
-          className="text-sm font-medium text-blue-600 hover:underline"
+          className="link-brand text-sm"
         >
           {historyOpen ? "Hide history counts" : "History counts (optional)"}
         </button>

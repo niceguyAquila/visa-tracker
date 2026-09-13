@@ -3,32 +3,11 @@ import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { CompanyChip } from "../components/CompanyChip";
 import { daysUntilISODate, formatDisplayDate } from "../lib/dates";
 import { supabase } from "../lib/supabase";
-import type { VisaStatus, VisaWithCustomer } from "../types";
+import { statusBadgeClass, urgencyClass } from "../lib/ui";
+import type { VisaWithCustomer } from "../types";
 
 const VISA_SELECT =
   "*, customers ( id, full_name, passport_number, company_id, companies ( id, name, color ) )";
-
-function urgencyClass(days: number): string {
-  if (days < 0) return "bg-red-100 text-red-900";
-  if (days <= 10) return "bg-amber-100 text-amber-900";
-  if (days <= 30) return "bg-yellow-50 text-yellow-900";
-  return "bg-slate-100 text-slate-700";
-}
-
-function statusBadgeClass(status: VisaStatus): string {
-  switch (status) {
-    case "In-Progress":
-      return "bg-blue-100 text-blue-900";
-    case "Cuti":
-      return "bg-violet-100 text-violet-900";
-    case "Blacklist":
-      return "bg-red-100 text-red-900";
-    case "Finished":
-      return "bg-slate-100 text-slate-700";
-    default:
-      return "bg-slate-100 text-slate-700";
-  }
-}
 
 function relativeLabel(
   days: number,
@@ -60,12 +39,12 @@ function TimelineStep({
   const chipClass = hasUrgency
     ? urgencyClass(days)
     : muted
-      ? "bg-slate-50 text-slate-400"
-      : "bg-slate-100 text-slate-800";
+      ? "bg-paper text-muted"
+      : "bg-ok-soft text-ink";
 
   return (
     <div className="min-w-0 flex-1">
-      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+      <p className="meta">
         {label}
       </p>
       <div
@@ -94,7 +73,7 @@ function TimelineConnector() {
       className="hidden w-6 shrink-0 self-center sm:block"
       aria-hidden="true"
     >
-      <div className="h-px w-full bg-slate-200" />
+      <div className="h-px w-full bg-line" />
     </div>
   );
 }
@@ -155,16 +134,16 @@ export function VisaDetail() {
   if (!id) return null;
 
   if (loading) {
-    return <p className="text-slate-500">Loading…</p>;
+    return <p className="text-muted">Loading…</p>;
   }
 
   if (!visa) {
     return (
       <div className="space-y-2">
-        <p className="text-red-600">{error ?? "Not found"}</p>
+        <p className="text-red-700">{error ?? "Not found"}</p>
         <Link
           to="/visas/active"
-          className="text-sm font-medium text-blue-600 hover:underline"
+          className="link-brand text-sm"
         >
           ← Back to list
         </Link>
@@ -182,24 +161,24 @@ export function VisaDetail() {
   return (
     <div className="space-y-6">
       {flashSuccess ? (
-        <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
+        <p className="flash-success">
           {flashSuccess}
         </p>
       ) : null}
       <div>
         <Link
           to={listPath}
-          className="text-sm font-medium text-blue-600 hover:underline"
+          className="link-brand text-sm"
         >
           ← {visa.status === "In-Progress" ? "Active visas" : "Archive"}
         </Link>
 
         <div className="mt-2 flex flex-row items-start justify-between gap-3">
           <div className="min-w-0">
-            <h1 className="truncate text-2xl font-semibold text-slate-900">
+            <h1 className="page-title truncate">
               {visa.customers?.full_name ?? "Visa"}
             </h1>
-            <p className="mt-1 flex flex-wrap items-center gap-2 text-slate-600">
+            <p className="mt-1 flex flex-wrap items-center gap-2 text-muted">
               {visa.customers?.companies ? (
                 <CompanyChip
                   name={visa.customers.companies.name}
@@ -211,7 +190,7 @@ export function VisaDetail() {
               <span>· {visa.visa_days}</span>
             </p>
             <span
-              className={`mt-2 inline-flex rounded-lg px-2.5 py-1 text-xs font-medium ${statusBadgeClass(visa.status)}`}
+              className={`mt-2 inline-flex rounded-md px-2.5 py-1 text-xs font-medium ${statusBadgeClass(visa.status)}`}
             >
               {visa.status}
             </span>
@@ -219,14 +198,14 @@ export function VisaDetail() {
           <div className="flex shrink-0 flex-wrap justify-end gap-2">
             <Link
               to={`/visas/${id}/edit`}
-              className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50"
+              className="btn-ghost"
             >
               Edit
             </Link>
             <button
               type="button"
               onClick={() => void removeVisa()}
-              className="rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50"
+              className="btn-danger"
             >
               Delete
             </button>
@@ -234,16 +213,16 @@ export function VisaDetail() {
         </div>
       </div>
 
-      {error ? <p className="text-sm text-red-600">{error}</p> : null}
+      {error ? <p className="text-sm text-red-700">{error}</p> : null}
 
-      <section className="space-y-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+      <section className="panel space-y-3 p-4">
         <div className="flex flex-wrap items-center gap-2">
-          <h2 className="text-sm font-semibold text-slate-900">Timeline</h2>
+          <h2 className="text-sm font-semibold text-ink">Timeline</h2>
           <span
-            className={`inline-flex rounded-lg px-2 py-0.5 text-xs font-medium ${
+            className={`inline-flex rounded-md px-2 py-0.5 text-xs font-medium ${
               visa.extension_done
-                ? "bg-emerald-50 text-emerald-800"
-                : "bg-slate-100 text-slate-600"
+                ? "bg-success-soft text-success-ink"
+                : "bg-ok-soft text-ok-ink"
             }`}
           >
             Extension {visa.extension_done ? "done" : "not done"}
@@ -276,22 +255,22 @@ export function VisaDetail() {
         </div>
       </section>
 
-      <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-        <h2 className="text-sm font-semibold text-slate-900">Details</h2>
+      <section className="panel p-4">
+        <h2 className="text-sm font-semibold text-ink">Details</h2>
         <dl className="mt-3 grid gap-4 sm:grid-cols-2">
           <div>
-            <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">
+            <dt className="meta">
               Passport number
             </dt>
-            <dd className="mt-1 font-mono text-sm text-slate-900">
+            <dd className="mt-1 font-mono text-sm text-ink">
               {visa.customers?.passport_number ?? "—"}
             </dd>
           </div>
           <div>
-            <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">
+            <dt className="meta">
               Company
             </dt>
-            <dd className="mt-1 text-slate-900">
+            <dd className="mt-1 text-ink">
               {visa.customers?.companies ? (
                 <CompanyChip
                   name={visa.customers.companies.name}
@@ -303,14 +282,14 @@ export function VisaDetail() {
             </dd>
           </div>
           <div>
-            <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">
+            <dt className="meta">
               Customer
             </dt>
             <dd className="mt-1">
               {visa.customers ? (
                 <Link
                   to={`/customers/${visa.customer_id}`}
-                  className="font-medium text-blue-600 hover:underline"
+                  className="link-brand"
                 >
                   {visa.customers.full_name}
                 </Link>
@@ -320,16 +299,16 @@ export function VisaDetail() {
             </dd>
           </div>
           <div>
-            <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">
+            <dt className="meta">
               Masuk dari
             </dt>
-            <dd className="mt-1 text-slate-900">{visa.masuk_dari || "—"}</dd>
+            <dd className="mt-1 text-ink">{visa.masuk_dari || "—"}</dd>
           </div>
           <div>
-            <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">
+            <dt className="meta">
               Visa days
             </dt>
-            <dd className="mt-1 text-slate-900">{visa.visa_days}</dd>
+            <dd className="mt-1 text-ink">{visa.visa_days}</dd>
           </div>
         </dl>
       </section>

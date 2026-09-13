@@ -1,14 +1,18 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { daysUntilISODate, formatDisplayDate } from "../lib/dates";
+import {
+  statusBadgeClass,
+  statusRowClass,
+  urgencyCellClass,
+} from "../lib/ui";
 import { ARCHIVE_STATUSES } from "../lib/visa";
 import { supabase } from "../lib/supabase";
-import type { Company, VisaStatus, VisaWithCustomer } from "../types";
+import type { Company, VisaWithCustomer } from "../types";
 
 const PAGE_SIZE = 50;
 
-const inputClass =
-  "w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200";
+const inputClass = "input-field text-sm";
 
 type UrgencyFilter = "all" | "expired" | "10" | "30" | "ok";
 type ExtDoneFilter = "all" | "yes" | "no";
@@ -60,39 +64,6 @@ function addDaysISO(iso: string, days: number): string {
   const dt = new Date(Date.UTC(y, m - 1, d));
   dt.setUTCDate(dt.getUTCDate() + days);
   return dt.toISOString().slice(0, 10);
-}
-
-function urgencyCellClass(days: number): string {
-  if (days < 0) return "text-red-700";
-  if (days === 0) return "text-yellow-800";
-  if (days <= 10) return "text-amber-800";
-  if (days <= 30) return "text-yellow-800";
-  return "text-slate-700";
-}
-
-function statusBadgeClass(status: VisaStatus): string {
-  switch (status) {
-    case "In-Progress":
-      return "bg-blue-100 text-blue-900";
-    case "Cuti":
-      return "bg-green-200 text-green-900";
-    case "Blacklist":
-      return "bg-cyan-200 text-cyan-900";
-    case "Finished":
-      return "bg-slate-100 text-slate-700";
-    default:
-      return "bg-slate-100 text-slate-700";
-  }
-}
-
-function rowClass(
-  status: VisaStatus,
-  leaveDays: number | null
-): string {
-  if (status === "Cuti") return "bg-green-50 hover:bg-green-100";
-  if (status === "Blacklist") return "bg-cyan-50 hover:bg-cyan-100";
-  if (leaveDays === 0) return "bg-yellow-100 hover:bg-yellow-200";
-  return "bg-white hover:bg-slate-50";
 }
 
 function parseUrgency(value: string | null): UrgencyFilter {
@@ -161,8 +132,8 @@ function SortHeader({
       <button
         type="button"
         onClick={() => onSort(sortKey)}
-        className={`inline-flex w-full items-center gap-1 font-medium uppercase tracking-wide hover:text-slate-800 ${alignClass} ${
-          active ? "text-slate-800" : "text-slate-500"
+        className={`inline-flex w-full items-center gap-1 font-medium uppercase tracking-wide hover:text-ink ${alignClass} ${
+          active ? "text-ink" : "text-muted"
         }`}
       >
         <span>{label}</span>
@@ -398,14 +369,14 @@ function VisaList({ mode }: VisaListProps) {
   return (
     <div className="space-y-4 pb-16">
       <div>
-        <h1 className="text-2xl font-semibold text-slate-900">{title}</h1>
-        <p className="text-sm text-slate-600">{description}</p>
+        <h1 className="page-title">{title}</h1>
+        <p className="page-sub">{description}</p>
       </div>
 
       <Link
         to="/visas/new"
         aria-label="Add visa"
-        className="fixed z-50 flex size-14 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg hover:bg-blue-700 right-4 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] sm:right-6 sm:bottom-6"
+        className="fab-add"
       >
         <svg
           viewBox="0 0 24 24"
@@ -417,9 +388,9 @@ function VisaList({ mode }: VisaListProps) {
         </svg>
       </Link>
 
-      <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="filter-panel">
         <label className="block text-sm">
-          <span className="mb-1 block font-medium text-slate-600">Search</span>
+          <span className="mb-1 block font-medium text-ink-soft">Search</span>
           <input
             type="search"
             className={inputClass}
@@ -430,7 +401,7 @@ function VisaList({ mode }: VisaListProps) {
         </label>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <label className="block text-sm">
-            <span className="mb-1 block font-medium text-slate-600">Company</span>
+            <span className="mb-1 block font-medium text-ink-soft">Company</span>
             <select
               className={inputClass}
               value={companyId}
@@ -445,7 +416,7 @@ function VisaList({ mode }: VisaListProps) {
             </select>
           </label>
           <label className="block text-sm">
-            <span className="mb-1 block font-medium text-slate-600">
+            <span className="mb-1 block font-medium text-ink-soft">
               Extension due
             </span>
             <select
@@ -465,7 +436,7 @@ function VisaList({ mode }: VisaListProps) {
             </select>
           </label>
           <label className="block text-sm">
-            <span className="mb-1 block font-medium text-slate-600">
+            <span className="mb-1 block font-medium text-ink-soft">
               Extension done
             </span>
             <select
@@ -484,7 +455,7 @@ function VisaList({ mode }: VisaListProps) {
           </label>
           {mode === "archive" ? (
             <label className="block text-sm">
-              <span className="mb-1 block font-medium text-slate-600">Status</span>
+              <span className="mb-1 block font-medium text-ink-soft">Status</span>
               <select
                 className={inputClass}
                 value={archiveStatus}
@@ -506,13 +477,13 @@ function VisaList({ mode }: VisaListProps) {
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600">
+      <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-muted">
         <p>{loading ? "Loading…" : rangeLabel}</p>
         {filtersActive ? (
           <button
             type="button"
             onClick={clearFilters}
-            className="font-medium text-blue-600 hover:underline"
+            className="link-brand"
           >
             Clear filters
           </button>
@@ -520,18 +491,18 @@ function VisaList({ mode }: VisaListProps) {
       </div>
 
       {error ? (
-        <p className="text-sm text-red-600">{error}</p>
+        <p className="text-sm text-red-700">{error}</p>
       ) : null}
 
       {!loading && !error && totalCount === 0 ? (
-        <div className="rounded-xl border border-dashed border-slate-200 bg-white p-8 text-center text-slate-600">
+        <div className="empty-state">
           {filtersActive ? (
             <>
               No visas match these filters.{" "}
               <button
                 type="button"
                 onClick={clearFilters}
-                className="font-medium text-blue-600 hover:underline"
+                className="link-brand"
               >
                 Clear filters
               </button>
@@ -541,7 +512,7 @@ function VisaList({ mode }: VisaListProps) {
               No {mode === "active" ? "active" : "archived"} visas yet.{" "}
               <Link
                 to="/visas/new"
-                className="font-medium text-blue-600 hover:underline"
+                className="link-brand"
               >
                 Add a visa
               </Link>
@@ -551,11 +522,11 @@ function VisaList({ mode }: VisaListProps) {
         </div>
       ) : (
         <>
-          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+          <div className="overflow-x-auto rounded-lg border border-line bg-surface">
             <table className="w-full min-w-[78rem] border-collapse text-left text-sm">
-              <thead className="sticky top-0 z-10 border-b border-slate-200 bg-slate-50 text-xs">
+              <thead className="sticky top-0 z-10 border-b border-line bg-paper text-xs">
                 <tr>
-                  <th className="whitespace-nowrap px-3 py-2.5 text-right font-medium uppercase tracking-wide text-slate-500">
+                  <th className="whitespace-nowrap px-3 py-2.5 text-right font-medium uppercase tracking-wide text-muted">
                     #
                   </th>
                   <SortHeader
@@ -651,7 +622,7 @@ function VisaList({ mode }: VisaListProps) {
                   <tr>
                     <td
                       colSpan={13}
-                      className="px-3 py-8 text-center text-slate-500"
+                      className="px-3 py-8 text-center text-muted"
                     >
                       Loading…
                     </td>
@@ -669,7 +640,7 @@ function VisaList({ mode }: VisaListProps) {
                     return (
                       <tr
                         key={v.id}
-                        className={`cursor-pointer border-t border-slate-100 ${rowClass(v.status, leaveDays)}`}
+                        className={`cursor-pointer border-t border-line/80 ${statusRowClass(v.status, leaveDays)}`}
                         tabIndex={0}
                         role="link"
                         onClick={() => navigate(`/visas/${v.id}`)}
@@ -680,39 +651,39 @@ function VisaList({ mode }: VisaListProps) {
                           }
                         }}
                       >
-                        <td className="whitespace-nowrap px-3 py-2 text-right tabular-nums text-slate-500">
+                        <td className="whitespace-nowrap px-3 py-2 text-right tabular-nums text-muted">
                           {rowNumber}
                         </td>
                         <td className="whitespace-nowrap px-3 py-2">
                           <span
-                            className={`inline-flex rounded px-1.5 py-0.5 text-xs font-medium ${statusBadgeClass(v.status)}`}
+                            className={`inline-flex rounded-md px-1.5 py-0.5 text-xs font-medium ${statusBadgeClass(v.status)}`}
                           >
                             {v.status}
                           </span>
                         </td>
-                        <td className="max-w-[10rem] truncate px-3 py-2 font-medium text-slate-900">
+                        <td className="max-w-[10rem] truncate px-3 py-2 font-medium text-ink">
                           {v.customers?.full_name ?? "—"}
                         </td>
-                        <td className="whitespace-nowrap px-3 py-2 font-mono text-xs text-slate-700">
+                        <td className="whitespace-nowrap px-3 py-2 font-mono text-xs text-ink-soft">
                           {v.customers?.passport_number ?? "—"}
                         </td>
-                        <td className="max-w-[9rem] truncate px-3 py-2 text-slate-700">
+                        <td className="max-w-[9rem] truncate px-3 py-2 text-ink-soft">
                           {v.masuk_dari || "—"}
                         </td>
-                        <td className="max-w-[9rem] truncate px-3 py-2 text-slate-700">
+                        <td className="max-w-[9rem] truncate px-3 py-2 text-ink-soft">
                           {v.customers?.companies?.name ?? "—"}
                         </td>
-                        <td className="whitespace-nowrap px-3 py-2 text-slate-700">
+                        <td className="whitespace-nowrap px-3 py-2 text-ink-soft">
                           {v.visa_days}
                         </td>
-                        <td className="whitespace-nowrap px-3 py-2 tabular-nums text-slate-700">
+                        <td className="whitespace-nowrap px-3 py-2 tabular-nums text-ink-soft">
                           {formatDisplayDate(v.date_entered)}
                         </td>
                         <td
                           className={`whitespace-nowrap px-3 py-2 tabular-nums ${
                             showExtRelative
                               ? urgencyCellClass(extDays)
-                              : "text-slate-700"
+                              : "text-ink-soft"
                           }`}
                         >
                           <span className="font-medium">
@@ -728,23 +699,23 @@ function VisaList({ mode }: VisaListProps) {
                             </span>
                           ) : null}
                         </td>
-                        <td className="whitespace-nowrap px-3 py-2 tabular-nums text-slate-700">
+                        <td className="whitespace-nowrap px-3 py-2 tabular-nums text-ink-soft">
                           {v.date_extended
                             ? formatDisplayDate(v.date_extended)
                             : "—"}
                         </td>
-                        <td className="whitespace-nowrap px-3 py-2 text-center text-slate-700">
+                        <td className="whitespace-nowrap px-3 py-2 text-center text-ink-soft">
                           {v.extension_done ? "Y" : "—"}
                         </td>
                         <td
                           className={`whitespace-nowrap px-3 py-2 tabular-nums ${
                             !v.leave_date_reminder || leaveDays === null
-                              ? "text-slate-400"
+                              ? "text-muted"
                               : leaveDays === 0
-                                ? "bg-yellow-200/80 text-yellow-900"
+                                ? "bg-watch-soft text-watch-ink"
                                 : showLeaveRelative
                                   ? urgencyCellClass(leaveDays)
-                                  : "text-slate-700"
+                                  : "text-ink-soft"
                           }`}
                         >
                           {v.leave_date_reminder && leaveDays !== null ? (
@@ -766,7 +737,7 @@ function VisaList({ mode }: VisaListProps) {
                             "—"
                           )}
                         </td>
-                        <td className="whitespace-nowrap px-3 py-2 text-center text-slate-700">
+                        <td className="whitespace-nowrap px-3 py-2 text-center text-ink-soft">
                           {v.cycle_done ? "Y" : "—"}
                         </td>
                       </tr>
@@ -779,7 +750,7 @@ function VisaList({ mode }: VisaListProps) {
 
           {totalPages > 1 ? (
             <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
-              <p className="text-slate-600">
+              <p className="text-muted">
                 Page {safePage} of {totalPages}
               </p>
               <div className="flex gap-2">
@@ -787,7 +758,7 @@ function VisaList({ mode }: VisaListProps) {
                   type="button"
                   disabled={safePage <= 1 || loading}
                   onClick={() => goToPage(safePage - 1)}
-                  className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 font-medium text-slate-800 hover:bg-slate-50 disabled:opacity-40"
+                  className="btn-ghost px-3 py-1.5 disabled:opacity-40"
                 >
                   Previous
                 </button>
@@ -795,7 +766,7 @@ function VisaList({ mode }: VisaListProps) {
                   type="button"
                   disabled={safePage >= totalPages || loading}
                   onClick={() => goToPage(safePage + 1)}
-                  className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 font-medium text-slate-800 hover:bg-slate-50 disabled:opacity-40"
+                  className="btn-ghost px-3 py-1.5 disabled:opacity-40"
                 >
                   Next
                 </button>

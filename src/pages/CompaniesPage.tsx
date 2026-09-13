@@ -22,7 +22,7 @@ function ColorPicker({
 }) {
   return (
     <div className="space-y-1.5">
-      <span className="text-sm font-medium text-slate-700">Color</span>
+      <span className="text-sm font-medium text-ink-soft">Color</span>
       <div className="flex flex-wrap items-center gap-2">
         <button
           type="button"
@@ -30,8 +30,8 @@ function ColorPicker({
           onClick={() => onChange(null)}
           className={`rounded-lg border px-2.5 py-1.5 text-xs font-medium ${
             value === null
-              ? "border-slate-800 bg-slate-100 text-slate-900"
-              : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+              ? "border-ink bg-paper text-ink"
+              : "border-line bg-surface text-muted hover:bg-paper"
           } disabled:opacity-60`}
         >
           None
@@ -46,7 +46,7 @@ function ColorPicker({
             aria-pressed={value === c}
             onClick={() => onChange(c)}
             className={`flex size-8 items-center justify-center rounded-full border-2 ${
-              value === c ? "border-slate-900" : "border-transparent"
+              value === c ? "border-ink" : "border-transparent"
             } disabled:opacity-60`}
           >
             <span
@@ -166,46 +166,46 @@ export function CompaniesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-slate-900">Companies</h1>
-        <p className="text-sm text-slate-600">
+        <h1 className="page-title">Companies</h1>
+        <p className="page-sub">
           Group customers under a company name and optional color.
         </p>
       </div>
 
       <form
         onSubmit={onCreate}
-        className="space-y-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+        className="panel space-y-3 p-4"
       >
         <label className="block">
-          <span className="text-sm font-medium text-slate-700">Company name</span>
+          <span className="text-sm font-medium text-ink-soft">Company name</span>
           <input
             required
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g. Acme Corp"
-            className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-base focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+            className="input-field mt-1"
           />
         </label>
         <ColorPicker value={color} onChange={setColor} disabled={busy} />
         <button
           type="submit"
           disabled={busy || !orgId}
-          className="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60"
+          className="btn-primary"
         >
           {busy ? "Saving…" : "Add company"}
         </button>
       </form>
 
-      {error ? <p className="text-sm text-red-600">{error}</p> : null}
+      {error ? <p className="text-sm text-red-700">{error}</p> : null}
 
       {loading ? (
-        <p className="text-slate-500">Loading…</p>
+        <p className="text-muted">Loading…</p>
       ) : companies.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-slate-200 bg-white p-8 text-center text-slate-600">
+        <div className="empty-state">
           No companies yet. Add one above, then create customers.
         </div>
       ) : (
-        <ul className="divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white shadow-sm">
+        <ul className="divide-y divide-line rounded-lg border border-line bg-surface">
           {companies.map((co) => (
             <li key={co.id} className="flex flex-col gap-2 p-4 sm:flex-row sm:items-center sm:justify-between">
               {editingId === co.id ? (
@@ -214,7 +214,7 @@ export function CompaniesPage() {
                     required
                     value={editName}
                     onChange={(e) => setEditName(e.target.value)}
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-base focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                    className="input-field"
                   />
                   <ColorPicker
                     value={editColor}
@@ -225,7 +225,7 @@ export function CompaniesPage() {
                     <button
                       type="submit"
                       disabled={busy}
-                      className="rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60"
+                      className="btn-primary px-3 py-1.5"
                     >
                       Save
                     </button>
@@ -236,7 +236,7 @@ export function CompaniesPage() {
                         setEditName("");
                         setEditColor(null);
                       }}
-                      className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-800 hover:bg-slate-50"
+                      className="btn-ghost px-3 py-1.5"
                     >
                       Cancel
                     </button>
@@ -246,7 +246,7 @@ export function CompaniesPage() {
                 <>
                   <div className="flex min-w-0 items-center gap-2">
                     <CompanySwatch color={co.color} className="size-3.5" />
-                    <p className="truncate font-medium text-slate-900">{co.name}</p>
+                    <p className="truncate font-medium text-ink">{co.name}</p>
                   </div>
                   <div className="flex gap-2">
                     <button
@@ -256,14 +256,14 @@ export function CompaniesPage() {
                         setEditName(co.name);
                         setEditColor(isCompanyColor(co.color) ? co.color : null);
                       }}
-                      className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-800 hover:bg-slate-50"
+                      className="btn-ghost px-3 py-1.5"
                     >
                       Edit
                     </button>
                     <button
                       type="button"
                       onClick={() => void onDelete(co.id)}
-                      className="rounded-lg border border-red-200 px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-50"
+                      className="btn-danger px-3 py-1.5"
                     >
                       Delete
                     </button>
