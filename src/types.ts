@@ -57,6 +57,13 @@ export type Visa = {
   created_at: string;
 };
 
+export type EntryPort = {
+  id: string;
+  org_id: string;
+  name: string;
+  created_at: string;
+};
+
 export type VisaWithCustomer = Visa & {
   customers: (Pick<
     Customer,

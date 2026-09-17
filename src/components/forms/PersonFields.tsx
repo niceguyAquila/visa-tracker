@@ -115,9 +115,8 @@ export function PersonFields({
         </label>
 
         <div>
-          <FieldLabel required>Contact number</FieldLabel>
+          <FieldLabel>Contact number</FieldLabel>
           <PhoneInput
-            required
             dialCode={value.dialCode}
             localNumber={value.localNumber}
             onDialCodeChange={(dialCode) => onChange({ dialCode })}

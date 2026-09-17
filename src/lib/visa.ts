@@ -3,6 +3,44 @@ import type { VisaDays, VisaStatus } from "../types";
 
 export const VISA_DAYS_OPTIONS: VisaDays[] = ["90 Days", "30 Days"];
 
+export const DEFAULT_ENTRY_PORTS = [
+  "Senai",
+  "Putri",
+  "PG",
+  "Tg.P",
+  "KLIA 1",
+  "KLIA 2",
+] as const;
+
+export function mergeEntryPortOptions(
+  custom: string[],
+  current = ""
+): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  const push = (raw: string) => {
+    const name = raw.trim();
+    if (!name) return;
+    const key = name.toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+    out.push(name);
+  };
+  for (const port of DEFAULT_ENTRY_PORTS) push(port);
+  for (const port of custom) push(port);
+  push(current);
+  return out;
+}
+
+export function existingEntryPort(
+  name: string,
+  options: string[]
+): string | undefined {
+  const key = name.trim().toLowerCase();
+  if (!key) return undefined;
+  return options.find((port) => port.toLowerCase() === key);
+}
+
 export const ARCHIVE_STATUSES: VisaStatus[] = [
   "Cuti",
   "Blacklist",

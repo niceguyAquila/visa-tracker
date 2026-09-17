@@ -1,14 +1,16 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import { Layout } from "./components/Layout";
-import { ProtectedRoute } from "./components/ProtectedRoute";
+import { GuestRoute, ProtectedRoute } from "./components/ProtectedRoute";
 import { CompaniesPage } from "./pages/CompaniesPage";
 import { CustomerDetail } from "./pages/CustomerDetail";
 import { CustomerForm } from "./pages/CustomerForm";
 import { CustomersPage } from "./pages/CustomersPage";
 import { Dashboard } from "./pages/Dashboard";
 import { EntryForm } from "./pages/EntryForm";
+import { ForgotPassword } from "./pages/ForgotPassword";
 import { Login } from "./pages/Login";
 import { Register } from "./pages/Register";
+import { ResetPassword } from "./pages/ResetPassword";
 import { VisaDetail } from "./pages/VisaDetail";
 import { VisaForm } from "./pages/VisaForm";
 import {
@@ -19,8 +21,12 @@ import {
 export default function App() {
   return (
     <Routes>
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
+      <Route element={<GuestRoute />}>
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+      </Route>
+      <Route path="/reset-password" element={<ResetPassword />} />
 
       <Route element={<ProtectedRoute />}>
         <Route element={<Layout />}>

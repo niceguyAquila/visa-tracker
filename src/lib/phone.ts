@@ -35,6 +35,7 @@ export function formatLocalDisplay(local: string): string {
 
 export function composePhone(dialCode: string, local: string): string {
   const localDigits = normalizeLocalDigits(local);
+  if (!localDigits) return "";
   return `${dialCode}${localDigits}`;
 }
 
@@ -75,7 +76,7 @@ export function validatePhone(
   const localDigits = normalizeLocalDigits(local);
 
   if (!localDigits) {
-    return "Enter a phone number.";
+    return null;
   }
   if (localDigits.length < dial.minLocal) {
     return `Phone number is too short for ${dial.code} (min ${dial.minLocal} digits).`;

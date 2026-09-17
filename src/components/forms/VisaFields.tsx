@@ -3,6 +3,8 @@ import { formatDisplayDate } from "../../lib/dates";
 import {
   computeDateToExtension,
   computeLeaveDateReminder,
+  existingEntryPort,
+  mergeEntryPortOptions,
   VISA_DAYS_OPTIONS,
 } from "../../lib/visa";
 import type { VisaDays } from "../../types";
@@ -31,6 +33,8 @@ type VisaFieldsProps = {
   /** Extra content inside the More details panel (e.g. status controls). */
   moreDetailsExtra?: ReactNode;
   defaultMoreOpen?: boolean;
+  customPorts?: string[];
+  onAddEntryPort?: (name: string) => Promise<void>;
 };
 
 export function VisaFields({
@@ -40,14 +44,56 @@ export function VisaFields({
   errors = {},
   moreDetailsExtra,
   defaultMoreOpen = false,
+  customPorts = [],
+  onAddEntryPort,
 }: VisaFieldsProps) {
   const hasAdvanced =
     Boolean(value.dateExtended) || value.extensionDone || defaultMoreOpen;
   const [moreOpen, setMoreOpen] = useState(hasAdvanced);
+  const [addingPort, setAddingPort] = useState(false);
+  const [newPort, setNewPort] = useState("");
+  const [addBusy, setAddBusy] = useState(false);
+  const [addError, setAddError] = useState<string | null>(null);
 
   useEffect(() => {
     if (hasAdvanced) setMoreOpen(true);
   }, [hasAdvanced]);
+
+  const portOptions = mergeEntryPortOptions(customPorts, value.masukDari);
+  const selectValue =
+    existingEntryPort(value.masukDari, portOptions) ?? value.masukDari;
+
+  async function submitNewPort() {
+    const name = newPort.trim();
+    if (!name) {
+      setAddError("Enter a port name.");
+      return;
+    }
+    const existing = existingEntryPort(name, portOptions);
+    if (existing) {
+      onChange({ masukDari: existing });
+      setAddingPort(false);
+      setNewPort("");
+      setAddError(null);
+      return;
+    }
+    if (!onAddEntryPort) {
+      setAddError("Could not add a new port.");
+      return;
+    }
+    setAddBusy(true);
+    setAddError(null);
+    try {
+      await onAddEntryPort(name);
+      onChange({ masukDari: name });
+      setAddingPort(false);
+      setNewPort("");
+    } catch (err) {
+      setAddError(err instanceof Error ? err.message : "Could not add a new port.");
+    } finally {
+      setAddBusy(false);
+    }
+  }
 
   const previewDateToExtension = computeDateToExtension(
     value.dateEntered,
@@ -97,15 +143,74 @@ export function VisaFields({
         </label>
       </div>
 
-      <label className="block">
-        <FieldLabel>Masuk dari</FieldLabel>
-        <input
-          value={value.masukDari}
-          onChange={(e) => onChange({ masukDari: e.target.value })}
-          placeholder="Port of entry"
-          className={inputClass}
-        />
-      </label>
+      <div>
+        <label className="block">
+          <FieldLabel>Masuk dari</FieldLabel>
+          <select
+            value={selectValue}
+            onChange={(e) => onChange({ masukDari: e.target.value })}
+            className={inputClass}
+          >
+            <option value="">Select…</option>
+            {portOptions.map((port) => (
+              <option key={port} value={port}>
+                {port}
+              </option>
+            ))}
+          </select>
+        </label>
+        {addingPort ? (
+          <div className="mt-2 space-y-2">
+            <input
+              value={newPort}
+              onChange={(e) => setNewPort(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  void submitNewPort();
+                }
+              }}
+              placeholder="New port name"
+              className="input-field"
+              autoFocus
+            />
+            <div className="flex gap-2">
+              <button
+                type="button"
+                disabled={addBusy}
+                onClick={() => void submitNewPort()}
+                className="btn-primary"
+              >
+                {addBusy ? "Adding…" : "Add"}
+              </button>
+              <button
+                type="button"
+                disabled={addBusy}
+                onClick={() => {
+                  setAddingPort(false);
+                  setNewPort("");
+                  setAddError(null);
+                }}
+                className="btn-ghost"
+              >
+                Cancel
+              </button>
+            </div>
+            <FieldError message={addError ?? undefined} />
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => {
+              setAddingPort(true);
+              setAddError(null);
+            }}
+            className="link-brand mt-1 text-xs"
+          >
+            Add new
+          </button>
+        )}
+      </div>
 
       <div className="rounded-lg border border-line bg-paper px-3 py-3">
         <p className="meta">

@@ -110,6 +110,9 @@ function parseDir(value: string | null): "asc" | "desc" {
   return DEFAULT_DIR;
 }
 
+const stickyThClass =
+  "sticky top-0 z-10 whitespace-nowrap bg-paper px-3 py-2.5 shadow-[inset_0_-1px_0_0_var(--color-line)]";
+
 function SortHeader({
   label,
   sortKey,
@@ -134,7 +137,7 @@ function SortHeader({
         : "justify-start text-left";
 
   return (
-    <th className="whitespace-nowrap px-3 py-2.5">
+    <th className={stickyThClass}>
       <button
         type="button"
         onClick={() => onSort(sortKey)}
@@ -377,8 +380,8 @@ function VisaList({ mode }: VisaListProps) {
   }
 
   return (
-    <div className="space-y-4 pb-16">
-      <div>
+    <div className="flex h-[calc(100dvh-10.85rem)] flex-col gap-4 overflow-x-hidden overflow-y-auto pb-16 md:h-[calc(100dvh-6.85rem)] md:pb-20">
+      <div className="shrink-0">
         <h1 className="page-title">{title}</h1>
         <p className="page-sub">{description}</p>
       </div>
@@ -398,7 +401,7 @@ function VisaList({ mode }: VisaListProps) {
         </svg>
       </Link>
 
-      <div className="filter-panel">
+      <div className="filter-panel shrink-0">
         <label className="block text-sm">
           <span className="mb-1 block font-medium text-ink-soft">Search</span>
           <input
@@ -488,7 +491,7 @@ function VisaList({ mode }: VisaListProps) {
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-muted">
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 text-sm text-muted">
         <p>{loading ? "Loading…" : rangeLabel}</p>
         {filtersActive ? (
           <button
@@ -533,11 +536,13 @@ function VisaList({ mode }: VisaListProps) {
         </div>
       ) : (
         <>
-          <div className="overflow-x-auto rounded-lg border border-line bg-surface">
-            <table className="w-full min-w-[78rem] border-collapse text-left text-sm">
-              <thead className="sticky top-0 z-10 border-b border-line bg-paper text-xs">
+          <div className="min-h-0 flex-1 overflow-auto overscroll-contain rounded-lg border border-line bg-surface">
+            <table className="w-full min-w-[78rem] border-separate border-spacing-0 text-left text-sm">
+              <thead className="text-xs">
                 <tr>
-                  <th className="whitespace-nowrap px-3 py-2.5 text-right font-medium uppercase tracking-wide text-muted">
+                  <th
+                    className={`${stickyThClass} text-right font-medium uppercase tracking-wide text-muted`}
+                  >
                     #
                   </th>
                   <SortHeader
@@ -633,7 +638,7 @@ function VisaList({ mode }: VisaListProps) {
                   <tr>
                     <td
                       colSpan={13}
-                      className="px-3 py-8 text-center text-muted"
+                      className="border-t border-line/80 px-3 py-8 text-center text-muted"
                     >
                       Loading…
                     </td>
@@ -651,7 +656,7 @@ function VisaList({ mode }: VisaListProps) {
                     return (
                       <tr
                         key={v.id}
-                        className={`cursor-pointer border-t border-line/80 ${statusRowClass(v.status, leaveDays)}`}
+                        className={`cursor-pointer ${statusRowClass(v.status, leaveDays)}`}
                         tabIndex={0}
                         role="link"
                         onClick={() => navigate(`/visas/${v.id}`)}
@@ -662,36 +667,36 @@ function VisaList({ mode }: VisaListProps) {
                           }
                         }}
                       >
-                        <td className="whitespace-nowrap px-3 py-2 text-right tabular-nums text-muted">
+                        <td className="whitespace-nowrap border-t border-line/80 px-3 py-2 text-right tabular-nums text-muted">
                           {rowNumber}
                         </td>
-                        <td className="whitespace-nowrap px-3 py-2">
+                        <td className="whitespace-nowrap border-t border-line/80 px-3 py-2">
                           <span
                             className={`inline-flex rounded-md px-1.5 py-0.5 text-xs font-medium ${statusBadgeClass(v.status)}`}
                           >
                             {v.status}
                           </span>
                         </td>
-                        <td className="max-w-[10rem] truncate px-3 py-2 font-medium text-ink">
+                        <td className="max-w-[10rem] truncate border-t border-line/80 px-3 py-2 font-medium text-ink">
                           {v.customers?.full_name ?? "—"}
                         </td>
-                        <td className="whitespace-nowrap px-3 py-2 font-mono text-xs text-ink-soft">
+                        <td className="whitespace-nowrap border-t border-line/80 px-3 py-2 font-mono text-xs text-ink-soft">
                           {v.customers?.passport_number ?? "—"}
                         </td>
-                        <td className="max-w-[9rem] truncate px-3 py-2 text-ink-soft">
+                        <td className="max-w-[9rem] truncate border-t border-line/80 px-3 py-2 text-ink-soft">
                           {v.masuk_dari || "—"}
                         </td>
-                        <td className="max-w-[9rem] truncate px-3 py-2 text-ink-soft">
+                        <td className="max-w-[9rem] truncate border-t border-line/80 px-3 py-2 text-ink-soft">
                           {v.customers?.companies?.name ?? "—"}
                         </td>
-                        <td className="whitespace-nowrap px-3 py-2 text-ink-soft">
+                        <td className="whitespace-nowrap border-t border-line/80 px-3 py-2 text-ink-soft">
                           {v.visa_days}
                         </td>
-                        <td className="whitespace-nowrap px-3 py-2 tabular-nums text-ink-soft">
+                        <td className="whitespace-nowrap border-t border-line/80 px-3 py-2 tabular-nums text-ink-soft">
                           {formatDisplayDate(v.date_entered)}
                         </td>
                         <td
-                          className={`whitespace-nowrap px-3 py-2 tabular-nums ${
+                          className={`whitespace-nowrap border-t border-line/80 px-3 py-2 tabular-nums ${
                             showExtRelative
                               ? urgencyCellClass(extDays)
                               : "text-ink-soft"
@@ -710,16 +715,16 @@ function VisaList({ mode }: VisaListProps) {
                             </span>
                           ) : null}
                         </td>
-                        <td className="whitespace-nowrap px-3 py-2 tabular-nums text-ink-soft">
+                        <td className="whitespace-nowrap border-t border-line/80 px-3 py-2 tabular-nums text-ink-soft">
                           {v.date_extended
                             ? formatDisplayDate(v.date_extended)
                             : "—"}
                         </td>
-                        <td className="whitespace-nowrap px-3 py-2 text-center text-ink-soft">
+                        <td className="whitespace-nowrap border-t border-line/80 px-3 py-2 text-center text-ink-soft">
                           {v.extension_done ? "Y" : "—"}
                         </td>
                         <td
-                          className={`whitespace-nowrap px-3 py-2 tabular-nums ${
+                          className={`whitespace-nowrap border-t border-line/80 px-3 py-2 tabular-nums ${
                             !v.leave_date_reminder || leaveDays === null
                               ? "text-muted"
                               : leaveDays === 0
@@ -748,7 +753,7 @@ function VisaList({ mode }: VisaListProps) {
                             "—"
                           )}
                         </td>
-                        <td className="whitespace-nowrap px-3 py-2 text-center text-ink-soft">
+                        <td className="whitespace-nowrap border-t border-line/80 px-3 py-2 text-center text-ink-soft">
                           {v.cycle_done ? "Y" : "—"}
                         </td>
                       </tr>
@@ -760,7 +765,7 @@ function VisaList({ mode }: VisaListProps) {
           </div>
 
           {totalPages > 1 ? (
-            <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
+            <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 text-sm">
               <p className="text-muted">
                 Page {safePage} of {totalPages}
               </p>

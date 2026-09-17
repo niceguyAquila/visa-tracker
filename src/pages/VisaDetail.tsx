@@ -165,53 +165,48 @@ export function VisaDetail() {
           {flashSuccess}
         </p>
       ) : null}
-      <div>
-        <Link
-          to={listPath}
-          className="link-brand text-sm"
-        >
-          ← {visa.status === "In-Progress" ? "Active visas" : "Archive"}
-        </Link>
-
-        <div className="mt-2 flex flex-row items-start justify-between gap-3">
-          <div className="min-w-0">
-            <h1 className="page-title truncate">
-              {visa.customers?.full_name ?? "Visa"}
-            </h1>
-            <p className="mt-1 flex flex-wrap items-center gap-2 text-muted">
-              {visa.customers?.companies ? (
-                <CompanyChip
-                  name={visa.customers.companies.name}
-                  color={visa.customers.companies.color}
-                />
-              ) : (
-                <span>—</span>
-              )}
-              <span>· {visa.visa_days}</span>
-            </p>
-            <span
-              className={`mt-2 inline-flex rounded-md px-2.5 py-1 text-xs font-medium ${statusBadgeClass(visa.status)}`}
-            >
-              {visa.status}
-            </span>
-          </div>
-          <div className="flex shrink-0 flex-wrap justify-end gap-2">
-            <Link
-              to={`/visas/${id}/edit`}
-              className="btn-ghost"
-            >
+      <div className="panel space-y-3 p-4 sm:p-5">
+        <div className="flex items-center justify-between gap-3">
+          <Link to={listPath} className="link-brand min-w-0 truncate text-sm">
+            ← {visa.status === "In-Progress" ? "Active visas" : "Archive"}
+          </Link>
+          <div className="flex shrink-0 gap-2">
+            <Link to={`/visas/${id}/edit`} className="btn-ghost px-3 py-1.5">
               Edit
             </Link>
             <button
               type="button"
               onClick={() => void removeVisa()}
-              className="btn-danger"
+              className="btn-danger px-3 py-1.5"
             >
               Delete
             </button>
           </div>
         </div>
+
+        <div className="min-w-0">
+          <h1 className="page-title text-balance">
+            {visa.customers?.full_name ?? "Visa"}
+          </h1>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            {visa.customers?.companies ? (
+              <CompanyChip
+                name={visa.customers.companies.name}
+                color={visa.customers.companies.color}
+              />
+            ) : (
+              <span className="text-sm text-muted">No company</span>
+            )}
+            <span className="text-sm text-ink-soft">{visa.visa_days}</span>
+            <span
+              className={`inline-flex rounded-md px-2.5 py-1 text-xs font-medium ${statusBadgeClass(visa.status)}`}
+            >
+              {visa.status}
+            </span>
+          </div>
+        </div>
       </div>
+
 
       {error ? <p className="text-sm text-red-700">{error}</p> : null}
 

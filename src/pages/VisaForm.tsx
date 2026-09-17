@@ -22,6 +22,7 @@ export function VisaForm() {
 
   const [orgId, setOrgId] = useState<string | null>(null);
   const [customers, setCustomers] = useState<CustomerWithCompany[]>([]);
+  const [customPorts, setCustomPorts] = useState<string[]>([]);
   const [customerId, setCustomerId] = useState("");
   const [visa, setVisa] = useState<VisaFieldsValue>({
     visaDays: "90 Days",
@@ -49,10 +50,19 @@ export function VisaForm() {
       }
       setOrgId(defaultOrgId);
 
-      const { data: custRows, error: cErr } = await supabase
-        .from("customers")
-        .select("*, companies ( id, name )")
-        .order("full_name", { ascending: true });
+      const [
+        { data: custRows, error: cErr },
+        { data: portRows, error: portErr },
+      ] = await Promise.all([
+        supabase
+          .from("customers")
+          .select("*, companies ( id, name )")
+          .order("full_name", { ascending: true }),
+        supabase
+          .from("entry_ports")
+          .select("name")
+          .order("name", { ascending: true }),
+      ]);
       if (cancelled) return;
       if (cErr) {
         setError(cErr.message);
@@ -60,6 +70,11 @@ export function VisaForm() {
         return;
       }
       setCustomers((custRows ?? []) as CustomerWithCompany[]);
+      setCustomPorts(
+        portErr
+          ? []
+          : ((portRows ?? []) as { name: string }[]).map((p) => p.name)
+      );
 
       if (!id) {
         setError("Visa not found.");
@@ -100,6 +115,20 @@ export function VisaForm() {
       cancelled = true;
     };
   }, [id]);
+
+  async function addEntryPort(name: string) {
+    if (!orgId) throw new Error("No organization found.");
+    const { error } = await supabase.from("entry_ports").insert({
+      org_id: orgId,
+      name,
+    });
+    if (error) throw new Error(error.message);
+    setCustomPorts((prev) =>
+      prev.some((port) => port.toLowerCase() === name.toLowerCase())
+        ? prev
+        : [...prev, name]
+    );
+  }
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -176,6 +205,8 @@ export function VisaForm() {
             value={visa}
             onChange={(patch) => setVisa((prev) => ({ ...prev, ...patch }))}
             required
+            customPorts={customPorts}
+            onAddEntryPort={addEntryPort}
             defaultMoreOpen
             moreDetailsExtra={
               <VisaStatusFields

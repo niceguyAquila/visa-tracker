@@ -1,16 +1,20 @@
 import { useState, type FormEvent } from "react";
-import { Link, Navigate } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { BrandMark } from "../components/BrandMark";
 import { useAuth } from "../context/AuthContext";
+import { consumeIdleSignOut } from "../lib/session";
 
 export function Login() {
-  const { session, signIn } = useAuth();
+  const { signIn } = useAuth();
+  const [searchParams] = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [idleNotice] = useState(() => {
+    const flagged = consumeIdleSignOut();
+    return searchParams.get("reason") === "idle" || flagged;
+  });
   const [busy, setBusy] = useState(false);
-
-  if (session) return <Navigate to="/" replace />;
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -38,6 +42,11 @@ export function Login() {
             </Link>
             .
           </p>
+          {idleNotice ? (
+            <p className="callout-warn mt-4" role="status">
+              You were signed out after 60 minutes of inactivity.
+            </p>
+          ) : null}
           <form onSubmit={onSubmit} className="mt-6 space-y-4">
             <label className="block">
               <span className="text-sm font-medium text-ink-soft">Email</span>
@@ -61,6 +70,11 @@ export function Login() {
                 className="input-field mt-1"
               />
             </label>
+            <p className="text-sm">
+              <Link className="link-brand" to="/forgot-password">
+                Forgot password?
+              </Link>
+            </p>
             {error ? (
               <p className="text-sm text-red-700" role="alert">
                 {error}

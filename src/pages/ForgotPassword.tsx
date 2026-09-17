@@ -3,11 +3,9 @@ import { Link } from "react-router-dom";
 import { BrandMark } from "../components/BrandMark";
 import { useAuth } from "../context/AuthContext";
 
-export function Register() {
-  const { signUp } = useAuth();
+export function ForgotPassword() {
+  const { requestPasswordReset } = useAuth();
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [inviteCode, setInviteCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -17,50 +15,35 @@ export function Register() {
     setError(null);
     setInfo(null);
     setBusy(true);
-    const { error: err, session: nextSession } = await signUp(
-      email.trim(),
-      password,
-      inviteCode.trim()
-    );
+    const { error: err } = await requestPasswordReset(email.trim());
     setBusy(false);
-    if (err) {
+    if (err && /fetch|network|failed to/i.test(err.message)) {
       setError(err.message);
       return;
     }
-    if (!nextSession) {
-      setInfo("Check your email to confirm your account, then sign in.");
-    }
+    setInfo(
+      "If an account exists for that email, we sent a link to reset your password."
+    );
   }
 
   return (
     <div className="flex min-h-dvh flex-col justify-center bg-paper px-4 py-10">
       <div className="mx-auto w-full max-w-lg">
-        <BrandMark to="/register" />
+        <BrandMark to="/login" />
         <p className="mt-2 text-sm text-muted">
           Track worker visa expiry for your team.
         </p>
 
         <div className="panel mt-8 p-6">
-          <h1 className="page-title">Create manager account</h1>
+          <h1 className="page-title">Reset password</h1>
           <p className="page-sub mt-1 text-pretty">
-            Use the invite code from your team admin. Already registered?{" "}
+            Enter the email for your manager account.{" "}
             <Link className="link-brand" to="/login">
-              Sign in
+              Back to sign in
             </Link>
             .
           </p>
           <form onSubmit={onSubmit} className="mt-6 space-y-4">
-            <label className="block">
-              <span className="text-sm font-medium text-ink-soft">Invite code</span>
-              <input
-                type="text"
-                required
-                autoComplete="off"
-                value={inviteCode}
-                onChange={(e) => setInviteCode(e.target.value)}
-                className="input-field mt-1"
-              />
-            </label>
             <label className="block">
               <span className="text-sm font-medium text-ink-soft">Email</span>
               <input
@@ -69,18 +52,6 @@ export function Register() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="input-field mt-1"
-              />
-            </label>
-            <label className="block">
-              <span className="text-sm font-medium text-ink-soft">Password</span>
-              <input
-                type="password"
-                autoComplete="new-password"
-                required
-                minLength={8}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
                 className="input-field mt-1"
               />
             </label>
@@ -95,7 +66,7 @@ export function Register() {
               </p>
             ) : null}
             <button type="submit" disabled={busy} className="btn-primary w-full">
-              {busy ? "Creating…" : "Register"}
+              {busy ? "Sending…" : "Send reset link"}
             </button>
           </form>
         </div>

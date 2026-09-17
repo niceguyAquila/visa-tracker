@@ -84,6 +84,7 @@ export function EntryForm({ defaultMode }: EntryFormProps) {
   const [orgId, setOrgId] = useState<string | null>(null);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [customers, setCustomers] = useState<CustomerWithCompany[]>([]);
+  const [customPorts, setCustomPorts] = useState<string[]>([]);
   const [person, setPerson] = useState<PersonFieldsValue>(emptyPerson);
   const [visa, setVisa] = useState<VisaFieldsValue>(emptyVisa);
   const [existingCustomerId, setExistingCustomerId] = useState("");
@@ -112,13 +113,20 @@ export function EntryForm({ defaultMode }: EntryFormProps) {
       }
       setOrgId(defaultOrgId);
 
-      const [{ data: cos, error: cErr }, { data: custRows, error: custErr }] =
-        await Promise.all([
+      const [
+        { data: cos, error: cErr },
+        { data: custRows, error: custErr },
+        { data: portRows, error: portErr },
+      ] = await Promise.all([
           supabase.from("companies").select("*").order("name", { ascending: true }),
           supabase
             .from("customers")
             .select("*, companies ( id, name )")
             .order("full_name", { ascending: true }),
+          supabase
+            .from("entry_ports")
+            .select("name")
+            .order("name", { ascending: true }),
         ]);
 
       if (cancelled) return;
@@ -135,6 +143,11 @@ export function EntryForm({ defaultMode }: EntryFormProps) {
 
       setCompanies((cos ?? []) as Company[]);
       setCustomers((custRows ?? []) as CustomerWithCompany[]);
+      setCustomPorts(
+        portErr
+          ? []
+          : ((portRows ?? []) as { name: string }[]).map((p) => p.name)
+      );
 
       const preselect = searchParams.get("customer") ?? "";
       if (preselect) setExistingCustomerId(preselect);
@@ -172,6 +185,20 @@ export function EntryForm({ defaultMode }: EntryFormProps) {
         : undefined,
       form: undefined,
     }));
+  }
+
+  async function addEntryPort(name: string) {
+    if (!orgId) throw new Error("No organization found.");
+    const { error } = await supabase.from("entry_ports").insert({
+      org_id: orgId,
+      name,
+    });
+    if (error) throw new Error(error.message);
+    setCustomPorts((prev) =>
+      prev.some((port) => port.toLowerCase() === name.toLowerCase())
+        ? prev
+        : [...prev, name]
+    );
   }
 
   function onVisaStateChange(next: VisaStatus) {
@@ -569,6 +596,8 @@ export function EntryForm({ defaultMode }: EntryFormProps) {
                   onChange={patchVisa}
                   required
                   errors={errors.visa}
+                  customPorts={customPorts}
+                  onAddEntryPort={addEntryPort}
                   defaultMoreOpen={showStatus && (markAsOpen || visaState !== "In-Progress")}
                   moreDetailsExtra={
                     showStatus ? (
