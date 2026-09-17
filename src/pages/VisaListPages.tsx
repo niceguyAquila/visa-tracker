@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { AddFab } from "../components/AddFab";
 import { daysUntilISODate, formatDisplayDate } from "../lib/dates";
 import {
   statusBadgeClass,
@@ -380,26 +381,13 @@ function VisaList({ mode }: VisaListProps) {
   }
 
   return (
-    <div className="flex h-[calc(100dvh-10.85rem)] flex-col gap-4 overflow-x-hidden overflow-y-auto pb-16 md:h-[calc(100dvh-6.85rem)] md:pb-20">
+    <div className="flex flex-col gap-4 overflow-x-hidden md:h-[calc(100dvh-6.85rem)] md:overflow-hidden">
       <div className="shrink-0">
         <h1 className="page-title">{title}</h1>
         <p className="page-sub">{description}</p>
       </div>
 
-      <Link
-        to="/visas/new"
-        aria-label="Add visa"
-        className="fab-add"
-      >
-        <svg
-          viewBox="0 0 24 24"
-          className="size-7"
-          aria-hidden="true"
-          fill="currentColor"
-        >
-          <path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6z" />
-        </svg>
-      </Link>
+      <AddFab to="/visas/new" label="Add visa" storageKey="fab-visas" />
 
       <div className="filter-panel shrink-0">
         <label className="block text-sm">
@@ -536,7 +524,7 @@ function VisaList({ mode }: VisaListProps) {
         </div>
       ) : (
         <>
-          <div className="min-h-0 flex-1 overflow-auto overscroll-contain rounded-lg border border-line bg-surface">
+          <div className="min-h-[60svh] overflow-auto overscroll-contain rounded-lg border border-line bg-surface md:min-h-0 md:flex-1">
             <table className="w-full min-w-[78rem] border-separate border-spacing-0 text-left text-sm">
               <thead className="text-xs">
                 <tr>

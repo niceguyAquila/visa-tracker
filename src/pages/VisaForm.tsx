@@ -116,20 +116,6 @@ export function VisaForm() {
     };
   }, [id]);
 
-  async function addEntryPort(name: string) {
-    if (!orgId) throw new Error("No organization found.");
-    const { error } = await supabase.from("entry_ports").insert({
-      org_id: orgId,
-      name,
-    });
-    if (error) throw new Error(error.message);
-    setCustomPorts((prev) =>
-      prev.some((port) => port.toLowerCase() === name.toLowerCase())
-        ? prev
-        : [...prev, name]
-    );
-  }
-
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     if (!orgId || !id) return;
@@ -206,7 +192,6 @@ export function VisaForm() {
             onChange={(patch) => setVisa((prev) => ({ ...prev, ...patch }))}
             required
             customPorts={customPorts}
-            onAddEntryPort={addEntryPort}
             defaultMoreOpen
             moreDetailsExtra={
               <VisaStatusFields

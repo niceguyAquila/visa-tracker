@@ -98,7 +98,7 @@ body {
   }
 
   .fab-add {
-    @apply fixed z-50 flex size-14 items-center justify-center rounded-full bg-brand text-white shadow-lg hover:bg-brand-hover right-4 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] md:right-6 md:bottom-6;
+    @apply fixed z-50 flex size-14 cursor-grab touch-none select-none items-center justify-center rounded-full bg-brand text-white shadow-lg hover:bg-brand-hover active:cursor-grabbing right-4 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] md:right-6 md:bottom-6;
   }
 
   .flash-success {

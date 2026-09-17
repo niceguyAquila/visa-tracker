@@ -326,7 +326,7 @@ export function Dashboard() {
       ) : companies.length === 0 ? (
         <div className="empty-state">
           No companies yet.{" "}
-          <Link to="/companies" className="link-brand">
+          <Link to="/settings" className="link-brand">
             Add a company
           </Link>{" "}
           to start tracking metrics.

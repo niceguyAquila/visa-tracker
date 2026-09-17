@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import { AddFab } from "../components/AddFab";
 import { CompanyChip } from "../components/CompanyChip";
 import { supabase } from "../lib/supabase";
 import { daysUntilISODate, formatDisplayDate } from "../lib/dates";
@@ -117,7 +118,7 @@ export function CustomersPage() {
   }
 
   return (
-    <div className="space-y-6 pb-16">
+    <div className="space-y-6">
       <div>
         <h1 className="page-title">Customers</h1>
         <p className="page-sub">
@@ -125,20 +126,11 @@ export function CustomersPage() {
         </p>
       </div>
 
-      <Link
+      <AddFab
         to="/customers/new"
-        aria-label="Add customer"
-        className="fab-add"
-      >
-        <svg
-          viewBox="0 0 24 24"
-          className="size-7"
-          aria-hidden="true"
-          fill="currentColor"
-        >
-          <path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6z" />
-        </svg>
-      </Link>
+        label="Add customer"
+        storageKey="fab-customers"
+      />
 
       {loading ? (
         <p className="text-muted">Loading…</p>
@@ -147,7 +139,7 @@ export function CustomersPage() {
       ) : rows.length === 0 ? (
         <div className="empty-state">
           No customers yet.{" "}
-          <Link to="/companies" className="link-brand">
+          <Link to="/settings" className="link-brand">
             Add a company
           </Link>{" "}
           then create a customer.

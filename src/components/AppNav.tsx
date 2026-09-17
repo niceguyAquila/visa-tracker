@@ -4,7 +4,7 @@ import type { SVGProps } from "react";
 const links = [
   { to: "/", label: "Dashboard", short: "Dash", end: true, icon: IconGrid },
   { to: "/customers", label: "Customers", short: "People", end: true, icon: IconPeople },
-  { to: "/companies", label: "Companies", short: "Orgs", end: true, icon: IconOrgs },
+  { to: "/settings", label: "Settings", short: "Setup", end: true, icon: IconSettings },
   { to: "/visas/active", label: "Visa Active", short: "Active", end: true, icon: IconStamp },
   { to: "/visas/archive", label: "Visa Archive", short: "Archive", end: true, icon: IconArchive },
 ] as const;
@@ -31,12 +31,14 @@ function IconPeople(props: SVGProps<SVGSVGElement>) {
   );
 }
 
-function IconOrgs(props: SVGProps<SVGSVGElement>) {
+function IconSettings(props: SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" {...props}>
-      <path d="M4 20V8l8-4 8 4v12" strokeLinejoin="round" />
-      <path d="M9 20v-6h6v6" />
-      <path d="M9 11h.01M12 11h.01M15 11h.01" strokeLinecap="round" />
+      <circle cx="12" cy="12" r="3" />
+      <path
+        d="M12 3.5v2M12 18.5v2M4.9 7.05l1.7 1.2M17.4 15.75l1.7 1.2M3.5 12h2M18.5 12h2M4.9 16.95l1.7-1.2M17.4 8.25l1.7-1.2"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }

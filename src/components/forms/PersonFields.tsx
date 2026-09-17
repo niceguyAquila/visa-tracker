@@ -80,7 +80,7 @@ export function PersonFields({
             <p className="mt-1 text-sm text-muted">
               No companies yet.{" "}
               <Link
-                to="/companies"
+                to="/settings"
                 className="link-brand"
               >
                 Create a company
@@ -107,7 +107,7 @@ export function PersonFields({
           {companies.length > 0 ? (
             <p className="mt-1 text-xs text-muted">
               Need another?{" "}
-              <Link to="/companies" className="link-brand">
+              <Link to="/settings" className="link-brand">
                 Manage companies
               </Link>
             </p>

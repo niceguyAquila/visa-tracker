@@ -187,20 +187,6 @@ export function EntryForm({ defaultMode }: EntryFormProps) {
     }));
   }
 
-  async function addEntryPort(name: string) {
-    if (!orgId) throw new Error("No organization found.");
-    const { error } = await supabase.from("entry_ports").insert({
-      org_id: orgId,
-      name,
-    });
-    if (error) throw new Error(error.message);
-    setCustomPorts((prev) =>
-      prev.some((port) => port.toLowerCase() === name.toLowerCase())
-        ? prev
-        : [...prev, name]
-    );
-  }
-
   function onVisaStateChange(next: VisaStatus) {
     setVisaState(next);
     if (next !== "In-Progress") setMarkAsOpen(true);
@@ -327,10 +313,10 @@ export function EntryForm({ defaultMode }: EntryFormProps) {
             Customers must belong to a company before you can create them.
           </p>
           <Link
-            to="/companies"
+            to="/settings"
             className="link-brand mt-2 inline-block"
           >
-            Go to companies →
+            Go to settings →
           </Link>
         </div>
       );
@@ -597,7 +583,6 @@ export function EntryForm({ defaultMode }: EntryFormProps) {
                   required
                   errors={errors.visa}
                   customPorts={customPorts}
-                  onAddEntryPort={addEntryPort}
                   defaultMoreOpen={showStatus && (markAsOpen || visaState !== "In-Progress")}
                   moreDetailsExtra={
                     showStatus ? (

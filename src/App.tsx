@@ -1,7 +1,6 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import { Layout } from "./components/Layout";
 import { GuestRoute, ProtectedRoute } from "./components/ProtectedRoute";
-import { CompaniesPage } from "./pages/CompaniesPage";
 import { CustomerDetail } from "./pages/CustomerDetail";
 import { CustomerForm } from "./pages/CustomerForm";
 import { CustomersPage } from "./pages/CustomersPage";
@@ -11,6 +10,7 @@ import { ForgotPassword } from "./pages/ForgotPassword";
 import { Login } from "./pages/Login";
 import { Register } from "./pages/Register";
 import { ResetPassword } from "./pages/ResetPassword";
+import { SettingsPage } from "./pages/SettingsPage";
 import { VisaDetail } from "./pages/VisaDetail";
 import { VisaForm } from "./pages/VisaForm";
 import {
@@ -31,7 +31,8 @@ export default function App() {
       <Route element={<ProtectedRoute />}>
         <Route element={<Layout />}>
           <Route path="/" element={<Dashboard />} />
-          <Route path="/companies" element={<CompaniesPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/companies" element={<Navigate to="/settings" replace />} />
           <Route path="/visas/active" element={<VisaListActivePage />} />
           <Route path="/visas/archive" element={<VisaListArchivePage />} />
           <Route

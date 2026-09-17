@@ -60,7 +60,7 @@ function ColorPicker({
   );
 }
 
-export function CompaniesPage() {
+export function CompanySettings() {
   const [orgId, setOrgId] = useState<string | null>(null);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [name, setName] = useState("");
@@ -166,7 +166,7 @@ export function CompaniesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="page-title">Companies</h1>
+        <h2 className="text-lg font-semibold text-ink">Companies</h2>
         <p className="page-sub">
           Group customers under a company name and optional color.
         </p>
