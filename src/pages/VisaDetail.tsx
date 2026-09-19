@@ -3,7 +3,8 @@ import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { CompanyChip } from "../components/CompanyChip";
 import { daysUntilISODate, formatDisplayDate } from "../lib/dates";
 import { supabase } from "../lib/supabase";
-import { statusBadgeClass, urgencyClass } from "../lib/ui";
+import { statusBadgeClass, landedBadgeClass, landedLabel, urgencyClass } from "../lib/ui";
+import { isVisaLanded } from "../lib/visa";
 import type { VisaWithCustomer } from "../types";
 
 const VISA_SELECT =
@@ -26,6 +27,7 @@ type TimelineStepProps = {
   days?: number | null;
   kind?: "extension" | "leave";
   muted?: boolean;
+  emptyLabel?: string;
 };
 
 function TimelineStep({
@@ -34,6 +36,7 @@ function TimelineStep({
   days = null,
   kind = "extension",
   muted = false,
+  emptyLabel = "—",
 }: TimelineStepProps) {
   const hasUrgency = date && days !== null;
   const chipClass = hasUrgency
@@ -60,7 +63,7 @@ function TimelineStep({
             ) : null}
           </>
         ) : (
-          <span className="font-medium">—</span>
+          <span className="font-medium">{emptyLabel}</span>
         )}
       </div>
     </div>
@@ -153,7 +156,10 @@ export function VisaDetail() {
 
   const listPath =
     visa.status === "In-Progress" ? "/visas/active" : "/visas/archive";
-  const extDays = daysUntilISODate(visa.date_to_extension);
+  const landed = isVisaLanded(visa.date_entered);
+  const extDays = visa.date_to_extension
+    ? daysUntilISODate(visa.date_to_extension)
+    : null;
   const leaveDays = visa.leave_date_reminder
     ? daysUntilISODate(visa.leave_date_reminder)
     : null;
@@ -203,12 +209,26 @@ export function VisaDetail() {
             >
               {visa.status}
             </span>
+            {visa.status === "In-Progress" ? (
+              <span
+                className={`inline-flex rounded-md px-2.5 py-1 text-xs font-medium ${landedBadgeClass(landed)}`}
+              >
+                {landedLabel(landed)}
+              </span>
+            ) : null}
           </div>
         </div>
       </div>
 
 
       {error ? <p className="text-sm text-red-700">{error}</p> : null}
+
+      {visa.status === "In-Progress" && !landed ? (
+        <p className="callout-warn">
+          Visa is ready, but this customer has not landed yet. Add{" "}
+          <span className="font-medium">Date entered</span> when they arrive.
+        </p>
+      ) : null}
 
       <section className="panel space-y-3 p-4">
         <div className="flex flex-wrap items-center gap-2">
@@ -225,13 +245,20 @@ export function VisaDetail() {
         </div>
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch">
-          <TimelineStep label="Entered" date={visa.date_entered} />
+          <TimelineStep
+            label="Entered"
+            date={visa.date_entered}
+            emptyLabel="Not landed"
+            muted={!visa.date_entered}
+          />
           <TimelineConnector />
           <TimelineStep
             label="Ext. due"
             date={visa.date_to_extension}
             days={extDays}
             kind="extension"
+            emptyLabel="—"
+            muted={!visa.date_to_extension}
           />
           <TimelineConnector />
           <TimelineStep

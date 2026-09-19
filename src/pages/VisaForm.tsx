@@ -106,7 +106,7 @@ export function VisaForm() {
       setPassportId(rowVisa.passport_id);
       setVisa({
         visaDays: rowVisa.visa_days,
-        dateEntered: rowVisa.date_entered,
+        dateEntered: rowVisa.date_entered ?? "",
         dateExtended: rowVisa.date_extended ?? "",
         extensionDone: rowVisa.extension_done,
         masukDari: rowVisa.masuk_dari,
@@ -136,10 +136,6 @@ export function VisaForm() {
       setError("Passport is required.");
       return;
     }
-    if (!visa.dateEntered) {
-      setError("Date entered is required.");
-      return;
-    }
 
     setError(null);
     setBusy(true);
@@ -151,7 +147,7 @@ export function VisaForm() {
         customer_id: customerId,
         passport_id: passportId,
         visa_days: visa.visaDays,
-        date_entered: visa.dateEntered,
+        date_entered: visa.dateEntered || null,
         date_extended: visa.dateExtended || null,
         extension_done: visa.extensionDone,
         cycle_done: flags.cycle_done,

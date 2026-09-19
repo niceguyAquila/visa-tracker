@@ -298,7 +298,6 @@ export function EntryForm({ defaultMode }: EntryFormProps) {
   function validate(): boolean {
     const next: FieldErrors = {};
     const personErrs: PersonFieldErrors = {};
-    const visaErrs: VisaFieldErrors = {};
 
     if (mode === "personAndVisa" || mode === "personOnly") {
       if (!person.fullName.trim()) personErrs.fullName = "Name is required.";
@@ -321,13 +320,6 @@ export function EntryForm({ defaultMode }: EntryFormProps) {
       if (!existingPassportId) {
         next.passportId = "Select a passport.";
       }
-    }
-
-    if (mode === "personAndVisa" || mode === "visaOnly") {
-      if (!visa.dateEntered) {
-        visaErrs.dateEntered = "Date entered is required.";
-      }
-      if (Object.keys(visaErrs).length) next.visa = visaErrs;
     }
 
     setErrors(next);
@@ -464,7 +456,7 @@ export function EntryForm({ defaultMode }: EntryFormProps) {
         customer_id: customerId,
         passport_id: passportId,
         visa_days: visa.visaDays,
-        date_entered: visa.dateEntered,
+        date_entered: visa.dateEntered || null,
         date_extended: visa.dateExtended || null,
         extension_done: visa.extensionDone,
         cycle_done: flags.cycle_done,

@@ -53,23 +53,23 @@ function addDaysISO(iso: string, days: number): string {
   return d.toISOString().slice(0, 10);
 }
 
-/** Matches DB: 90 Days → +80, 30 Days → +20 from date entered. */
+/** Matches DB: 90 Days → +90, 30 Days → +30 from date entered. */
 export function computeDateToExtension(
-  dateEntered: string,
+  dateEntered: string | null | undefined,
   visaDays: VisaDays
 ): string | null {
   if (!dateEntered) return null;
-  if (visaDays === "90 Days") return addDaysISO(dateEntered, 80);
-  if (visaDays === "30 Days") return addDaysISO(dateEntered, 20);
+  if (visaDays === "90 Days") return addDaysISO(dateEntered, 90);
+  if (visaDays === "30 Days") return addDaysISO(dateEntered, 30);
   return null;
 }
 
-/** Matches DB: date_extended + 50, or blank if not extended. */
+/** Matches DB: date_extended + 60, or blank if not extended. */
 export function computeLeaveDateReminder(
   dateExtended: string | null | undefined
 ): string | null {
   if (!dateExtended) return null;
-  return addDaysISO(dateExtended, 50);
+  return addDaysISO(dateExtended, 60);
 }
 
 /** Matches DB generated status column. */
@@ -109,6 +109,12 @@ export const VISA_ARCHIVE_STATE_OPTIONS: VisaStatus[] = [
   "Blacklist",
   "Finished",
 ];
+
+export function isVisaLanded(
+  dateEntered: string | null | undefined
+): boolean {
+  return Boolean(dateEntered);
+}
 
 export function friendlyInProgressConflict(message: string): string {
   if (

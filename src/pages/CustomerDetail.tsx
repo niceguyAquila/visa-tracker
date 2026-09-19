@@ -15,7 +15,8 @@ import {
 } from "../lib/customer";
 import { supabase } from "../lib/supabase";
 import { daysUntilISODate, formatDisplayDate } from "../lib/dates";
-import { statusBadgeClass, urgencyClass } from "../lib/ui";
+import { statusBadgeClass, landedBadgeClass, landedLabel, urgencyClass } from "../lib/ui";
+import { isVisaLanded } from "../lib/visa";
 import type { CustomerWithCompany, Passport, Visa } from "../types";
 
 type PassportDraft = {
@@ -88,7 +89,8 @@ export function CustomerDetail() {
       .from("visas")
       .select("*")
       .eq("customer_id", id)
-      .order("date_entered", { ascending: false });
+      .order("date_entered", { ascending: false, nullsFirst: true })
+      .order("created_at", { ascending: false });
     if (vErr) {
       setError(vErr.message);
       setVisas([]);
@@ -252,6 +254,7 @@ export function CustomerDetail() {
   }
 
   const passports = sortPassports(customer.passports ?? []);
+  const passportById = new Map(passports.map((p) => [p.id, p]));
   const current = currentPassport(passports);
   const days = current ? daysUntilISODate(current.passport_expiry) : null;
 
@@ -594,29 +597,52 @@ export function CustomerDetail() {
           </div>
         ) : (
           <ul className="space-y-3">
-            {visas.map((v) => (
-              <li key={v.id}>
-                <Link
-                  to={`/visas/${v.id}`}
-                  className="list-card"
-                >
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <p className="font-medium text-ink">{v.visa_days}</p>
-                      <p className="text-sm text-muted">
-                        Entered {formatDisplayDate(v.date_entered)} · Extension{" "}
-                        {formatDisplayDate(v.date_to_extension)}
-                      </p>
+            {visas.map((v) => {
+              const passportNumber = passportById.get(v.passport_id)
+                ?.passport_number;
+              const landed = isVisaLanded(v.date_entered);
+              return (
+                <li key={v.id}>
+                  <Link to={`/visas/${v.id}`} className="list-card">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <p className="font-medium text-ink">
+                          {passportNumber ? (
+                            <>
+                              <span className="font-mono">{passportNumber}</span>
+                              {" · "}
+                            </>
+                          ) : null}
+                          {v.visa_days}
+                        </p>
+                        <p className="text-sm text-muted">
+                          {v.date_entered
+                            ? `Entered ${formatDisplayDate(v.date_entered)}`
+                            : "Not landed"}
+                          {v.date_to_extension
+                            ? ` · Extension ${formatDisplayDate(v.date_to_extension)}`
+                            : ""}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {v.status === "In-Progress" ? (
+                          <span
+                            className={`inline-flex w-fit rounded-md px-2.5 py-1 text-xs font-medium ${landedBadgeClass(landed)}`}
+                          >
+                            {landedLabel(landed)}
+                          </span>
+                        ) : null}
+                        <span
+                          className={`inline-flex w-fit rounded-md px-2.5 py-1 text-xs font-medium ${statusBadgeClass(v.status)}`}
+                        >
+                          {v.status}
+                        </span>
+                      </div>
                     </div>
-                    <span
-                      className={`inline-flex w-fit rounded-md px-2.5 py-1 text-xs font-medium ${statusBadgeClass(v.status)}`}
-                    >
-                      {v.status}
-                    </span>
-                  </div>
-                </Link>
-              </li>
-            ))}
+                  </Link>
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>

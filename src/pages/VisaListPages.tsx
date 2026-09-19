@@ -1,22 +1,27 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { AddFab } from "../components/AddFab";
-import { daysUntilISODate, formatDisplayDate } from "../lib/dates";
+import { daysUntilISODate, formatDisplayDate, formatOptionalDisplayDate } from "../lib/dates";
 import {
+  landedBadgeClass,
+  landedLabel,
   statusBadgeClass,
   statusRowClass,
   urgencyCellClass,
 } from "../lib/ui";
-import { ARCHIVE_STATUSES } from "../lib/visa";
+import { ARCHIVE_STATUSES, isVisaLanded } from "../lib/visa";
 import { supabase } from "../lib/supabase";
 import type { Company, VisaWithCustomer } from "../types";
 
-const PAGE_SIZE = 50;
+const PAGE_SIZES = [25, 50, 100] as const;
+type PageSize = (typeof PAGE_SIZES)[number];
+const DEFAULT_PAGE_SIZE: PageSize = 50;
 
 const inputClass = "input-field text-sm";
 
 type UrgencyFilter = "all" | "expired" | "today" | "10" | "30" | "ok";
 type ExtDoneFilter = "all" | "yes" | "no";
+type LandedFilter = "all" | "yes" | "no";
 type ArchiveStatusFilter = "all" | "Cuti" | "Blacklist" | "Finished";
 
 type SortKey =
@@ -85,6 +90,11 @@ function parseExtDone(value: string | null): ExtDoneFilter {
   return "all";
 }
 
+function parseLanded(value: string | null): LandedFilter {
+  if (value === "yes" || value === "no") return value;
+  return "all";
+}
+
 function parseArchiveStatus(value: string | null): ArchiveStatusFilter {
   if (value === "Cuti" || value === "Blacklist" || value === "Finished") {
     return value;
@@ -96,6 +106,14 @@ function parsePage(value: string | null): number {
   const n = Number(value);
   if (!Number.isFinite(n) || n < 1) return 1;
   return Math.floor(n);
+}
+
+function parsePageSize(value: string | null): PageSize {
+  const n = Number(value);
+  if ((PAGE_SIZES as readonly number[]).includes(n)) {
+    return n as PageSize;
+  }
+  return DEFAULT_PAGE_SIZE;
 }
 
 function parseSort(value: string | null): SortKey {
@@ -167,8 +185,10 @@ function VisaList({ mode }: VisaListProps) {
   const companyId = searchParams.get("company") ?? "";
   const urgency = parseUrgency(searchParams.get("urgency"));
   const extDone = parseExtDone(searchParams.get("ext"));
+  const landed = parseLanded(searchParams.get("landed"));
   const archiveStatus = parseArchiveStatus(searchParams.get("status"));
   const page = parsePage(searchParams.get("page"));
+  const pageSize = parsePageSize(searchParams.get("size"));
   const sortKey = parseSort(searchParams.get("sort"));
   const sortDir = parseDir(searchParams.get("dir"));
 
@@ -181,7 +201,7 @@ function VisaList({ mode }: VisaListProps) {
   const title = mode === "active" ? "Visa List — Active" : "Visa List — Archive";
   const description =
     mode === "active"
-      ? "In-Progress visa sessions currently being tracked."
+      ? "In-Progress visas, including those ready before the customer has landed."
       : "Cuti, Blacklist, and Finished visa sessions.";
 
   const filtersActive = Boolean(
@@ -189,10 +209,11 @@ function VisaList({ mode }: VisaListProps) {
       companyId ||
       urgency !== "all" ||
       extDone !== "all" ||
+      (mode === "active" && landed !== "all") ||
       (mode === "archive" && archiveStatus !== "all")
   );
 
-  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
   const safePage = Math.min(page, totalPages);
 
   useEffect(() => {
@@ -250,6 +271,12 @@ function VisaList({ mode }: VisaListProps) {
           .order("name", { ascending, foreignTable: "customers.companies" })
           .order("id", { ascending: true });
         break;
+      case "date_entered":
+        q = q
+          .order(sortKey, { ascending, nullsFirst: true })
+          .order("id", { ascending: true });
+        break;
+      case "date_to_extension":
       case "date_extended":
       case "leave_date_reminder":
         q = q
@@ -274,19 +301,26 @@ function VisaList({ mode }: VisaListProps) {
     if (extDone === "yes") q = q.eq("extension_done", true);
     if (extDone === "no") q = q.eq("extension_done", false);
 
+    if (mode === "active") {
+      if (landed === "yes") q = q.not("date_entered", "is", null);
+      if (landed === "no") q = q.is("date_entered", null);
+    }
+
     const today = todayISO();
-    if (urgency === "expired") {
-      q = q.lt("date_to_extension", today);
-    } else if (urgency === "today") {
-      q = q.eq("date_to_extension", today);
-    } else if (urgency === "10") {
-      q = q.gt("date_to_extension", today).lte("date_to_extension", addDaysISO(today, 10));
-    } else if (urgency === "30") {
-      q = q
-        .gt("date_to_extension", addDaysISO(today, 10))
-        .lte("date_to_extension", addDaysISO(today, 30));
-    } else if (urgency === "ok") {
-      q = q.gt("date_to_extension", addDaysISO(today, 30));
+    if (landed !== "no") {
+      if (urgency === "expired") {
+        q = q.lt("date_to_extension", today);
+      } else if (urgency === "today") {
+        q = q.eq("date_to_extension", today);
+      } else if (urgency === "10") {
+        q = q.gt("date_to_extension", today).lte("date_to_extension", addDaysISO(today, 10));
+      } else if (urgency === "30") {
+        q = q
+          .gt("date_to_extension", addDaysISO(today, 10))
+          .lte("date_to_extension", addDaysISO(today, 30));
+      } else if (urgency === "ok") {
+        q = q.gt("date_to_extension", addDaysISO(today, 30));
+      }
     }
 
     if (companyId) {
@@ -318,8 +352,8 @@ function VisaList({ mode }: VisaListProps) {
       q = q.or(parts.join(","));
     }
 
-    const from = (safePage - 1) * PAGE_SIZE;
-    const to = from + PAGE_SIZE - 1;
+    const from = (safePage - 1) * pageSize;
+    const to = from + pageSize - 1;
     q = q.range(from, to);
 
     const { data, error: qErr, count } = await q;
@@ -338,8 +372,10 @@ function VisaList({ mode }: VisaListProps) {
     companyId,
     urgency,
     extDone,
+    landed,
     archiveStatus,
     safePage,
+    pageSize,
     sortKey,
     sortDir,
   ]);
@@ -360,10 +396,10 @@ function VisaList({ mode }: VisaListProps) {
 
   const rangeLabel = useMemo(() => {
     if (totalCount === 0) return "0 visas";
-    const from = (safePage - 1) * PAGE_SIZE + 1;
-    const to = Math.min(safePage * PAGE_SIZE, totalCount);
+    const from = (safePage - 1) * pageSize + 1;
+    const to = Math.min(safePage * pageSize, totalCount);
     return `${from}–${to} of ${totalCount}`;
-  }, [safePage, totalCount]);
+  }, [safePage, pageSize, totalCount]);
 
   function updateParams(updates: Record<string, string>, resetPage = true) {
     const next = new URLSearchParams(searchParams);
@@ -396,7 +432,7 @@ function VisaList({ mode }: VisaListProps) {
   }
 
   return (
-    <div className="flex flex-col gap-4 overflow-x-hidden md:h-[calc(100dvh-6.85rem)] md:overflow-hidden">
+    <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden">
       <div className="shrink-0">
         <h1 className="page-title">{title}</h1>
         <p className="page-sub">{description}</p>
@@ -437,11 +473,12 @@ function VisaList({ mode }: VisaListProps) {
             </span>
             <select
               className={inputClass}
-              value={urgency}
+              value={landed === "no" ? "all" : urgency}
+              disabled={landed === "no"}
               onChange={(e) =>
-                updateParams({
-                  urgency: e.target.value === "all" ? "" : e.target.value,
-                })
+                  updateParams({
+                    urgency: e.target.value === "all" ? "" : e.target.value,
+                  })
               }
             >
               <option value="all">All</option>
@@ -489,7 +526,22 @@ function VisaList({ mode }: VisaListProps) {
               </select>
             </label>
           ) : (
-            <div className="hidden lg:block" />
+            <label className="block text-sm">
+              <span className="mb-1 block font-medium text-ink-soft">Arrival</span>
+              <select
+                className={inputClass}
+                value={landed}
+                onChange={(e) =>
+                  updateParams({
+                    landed: e.target.value === "all" ? "" : e.target.value,
+                  })
+                }
+              >
+                <option value="all">All</option>
+                <option value="yes">Landed</option>
+                <option value="no">Not landed</option>
+              </select>
+            </label>
           )}
         </div>
       </div>
@@ -539,7 +591,8 @@ function VisaList({ mode }: VisaListProps) {
         </div>
       ) : (
         <>
-          <div className="min-h-[60svh] overflow-auto overscroll-contain rounded-lg border border-line bg-surface md:min-h-0 md:flex-1">
+          <div className="flex min-h-0 flex-1 flex-col gap-3">
+            <div className="min-h-0 flex-1 overflow-auto rounded-lg border border-line bg-surface">
             <table className="w-full min-w-[78rem] border-separate border-spacing-0 text-left text-sm">
               <thead className="text-xs">
                 <tr>
@@ -648,18 +701,24 @@ function VisaList({ mode }: VisaListProps) {
                   </tr>
                 ) : (
                   rows.map((v, index) => {
-                    const rowNumber = (safePage - 1) * PAGE_SIZE + index + 1;
-                    const extDays = daysUntilISODate(v.date_to_extension);
+                    const rowNumber = (safePage - 1) * pageSize + index + 1;
+                    const extDays = v.date_to_extension
+                      ? daysUntilISODate(v.date_to_extension)
+                      : null;
                     const leaveDays = v.leave_date_reminder
                       ? daysUntilISODate(v.leave_date_reminder)
                       : null;
+                    const landedHere = isVisaLanded(v.date_entered);
                     const showExtRelative =
-                      mode === "active" && !v.extension_done;
-                    const showLeaveRelative = mode === "active";
+                      mode === "active" &&
+                      landedHere &&
+                      !v.extension_done &&
+                      extDays !== null;
+                    const showLeaveRelative = mode === "active" && landedHere;
                     return (
                       <tr
                         key={v.id}
-                        className={`cursor-pointer ${statusRowClass(v.status, leaveDays)}`}
+                        className={`cursor-pointer ${statusRowClass(v.status, leaveDays, landedHere)}`}
                         tabIndex={0}
                         role="link"
                         onClick={() => navigate(`/visas/${v.id}`)}
@@ -674,11 +733,20 @@ function VisaList({ mode }: VisaListProps) {
                           {rowNumber}
                         </td>
                         <td className="whitespace-nowrap border-t border-line/80 px-3 py-2">
-                          <span
-                            className={`inline-flex rounded-md px-1.5 py-0.5 text-xs font-medium ${statusBadgeClass(v.status)}`}
-                          >
-                            {v.status}
-                          </span>
+                          <div className="flex flex-col items-start gap-1">
+                            <span
+                              className={`inline-flex rounded-md px-1.5 py-0.5 text-xs font-medium ${statusBadgeClass(v.status)}`}
+                            >
+                              {v.status}
+                            </span>
+                            {mode === "active" ? (
+                              <span
+                                className={`inline-flex rounded-md px-1.5 py-0.5 text-xs font-medium ${landedBadgeClass(landedHere)}`}
+                              >
+                                {landedLabel(landedHere)}
+                              </span>
+                            ) : null}
+                          </div>
                         </td>
                         <td className="max-w-[10rem] truncate border-t border-line/80 px-3 py-2 font-medium text-ink">
                           {v.customers?.full_name ?? "—"}
@@ -696,19 +764,25 @@ function VisaList({ mode }: VisaListProps) {
                           {v.visa_days}
                         </td>
                         <td className="whitespace-nowrap border-t border-line/80 px-3 py-2 tabular-nums text-ink-soft">
-                          {formatDisplayDate(v.date_entered)}
+                          {formatOptionalDisplayDate(
+                            v.date_entered,
+                            "Not landed"
+                          )}
                         </td>
                         <td
                           className={`whitespace-nowrap border-t border-line/80 px-3 py-2 tabular-nums ${
-                            showExtRelative
+                            showExtRelative && extDays !== null
                               ? urgencyCellClass(extDays)
                               : "text-ink-soft"
                           }`}
                         >
                           <span className="font-medium">
-                            {formatDisplayDate(v.date_to_extension)}
+                            {formatOptionalDisplayDate(
+                              v.date_to_extension,
+                              "—"
+                            )}
                           </span>
-                          {showExtRelative ? (
+                          {showExtRelative && extDays !== null ? (
                             <span className="ml-1 text-xs opacity-80">
                               ({extDays < 0
                                 ? `${Math.abs(extDays)}d late`
@@ -767,31 +841,51 @@ function VisaList({ mode }: VisaListProps) {
             </table>
           </div>
 
-          {totalPages > 1 ? (
-            <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 text-sm">
-              <p className="text-muted">
-                Page {safePage} of {totalPages}
-              </p>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  disabled={safePage <= 1 || loading}
-                  onClick={() => goToPage(safePage - 1)}
-                  className="btn-ghost px-3 py-1.5 disabled:opacity-40"
-                >
-                  Previous
-                </button>
-                <button
-                  type="button"
-                  disabled={safePage >= totalPages || loading}
-                  onClick={() => goToPage(safePage + 1)}
-                  className="btn-ghost px-3 py-1.5 disabled:opacity-40"
-                >
-                  Next
-                </button>
-              </div>
+          <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 text-sm">
+            <label className="flex items-center gap-2 text-muted">
+              <span className="whitespace-nowrap">Per page</span>
+              <select
+                className={`${inputClass} w-auto py-1.5`}
+                value={pageSize}
+                onChange={(e) =>
+                  updateParams({
+                    size:
+                      Number(e.target.value) === DEFAULT_PAGE_SIZE
+                        ? ""
+                        : e.target.value,
+                  })
+                }
+              >
+                {PAGE_SIZES.map((size) => (
+                  <option key={size} value={size}>
+                    {size}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <p className="text-muted">
+              Page {safePage} of {totalPages}
+            </p>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                disabled={safePage <= 1 || loading}
+                onClick={() => goToPage(safePage - 1)}
+                className="btn-ghost px-3 py-1.5 disabled:opacity-40"
+              >
+                Previous
+              </button>
+              <button
+                type="button"
+                disabled={safePage >= totalPages || loading}
+                onClick={() => goToPage(safePage + 1)}
+                className="btn-ghost px-3 py-1.5 disabled:opacity-40"
+              >
+                Next
+              </button>
             </div>
-          ) : null}
+          </div>
+          </div>
         </>
       )}
     </div>

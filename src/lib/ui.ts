@@ -32,12 +32,24 @@ export function statusBadgeClass(status: VisaStatus): string {
 
 export function statusRowClass(
   status: VisaStatus,
-  leaveDays: number | null
+  leaveDays: number | null,
+  landed = true
 ): string {
   if (status === "Cuti") return "bg-cuti-soft/60 hover:bg-cuti-soft";
   if (status === "Blacklist") return "bg-risk-soft/60 hover:bg-risk-soft";
+  if (!landed) return "bg-watch-soft/50 hover:bg-watch-soft";
   if (leaveDays === 0) return "bg-watch-soft hover:bg-watch-soft";
   return "bg-surface hover:bg-paper";
+}
+
+export function landedBadgeClass(landed: boolean): string {
+  return landed
+    ? "bg-success-soft text-success-ink"
+    : "bg-watch-soft text-watch-ink";
+}
+
+export function landedLabel(landed: boolean): string {
+  return landed ? "Landed" : "Not landed";
 }
 
 export function statusSegmentActiveClass(status: VisaStatus): string {

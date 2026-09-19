@@ -29,3 +29,11 @@ export function formatDisplayDate(iso: string): string {
     return iso;
   }
 }
+
+export function formatOptionalDisplayDate(
+  iso: string | null | undefined,
+  empty = "—"
+): string {
+  if (!iso) return empty;
+  return formatDisplayDate(iso);
+}

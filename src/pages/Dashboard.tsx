@@ -97,6 +97,12 @@ function PassportVisaKpis({
           to={kpiPath("/visas/active", { company: companyId })}
         />
         <KpiCard
+          label="Not landed"
+          value={kpis.notLanded}
+          tone="yellow"
+          to={kpiPath("/visas/active", { landed: "no", company: companyId })}
+        />
+        <KpiCard
           label="Archived visas"
           value={kpis.archivedVisas}
           to={kpiPath("/visas/archive", { company: companyId })}
@@ -208,7 +214,7 @@ export function Dashboard() {
         .order("full_name", { ascending: true }),
       supabase
         .from("visas")
-        .select("status, date_to_extension, extension_done, customers ( company_id )"),
+        .select("status, date_entered, date_to_extension, extension_done, customers ( company_id )"),
     ]);
 
     if (coRes.error) {
@@ -251,6 +257,7 @@ export function Dashboard() {
     setVisas(
       (visaRes.data ?? []).map((row) => ({
         status: row.status as VisaStatus,
+        date_entered: row.date_entered,
         date_to_extension: row.date_to_extension,
         extension_done: row.extension_done,
         company_id: companyIdFromEmbedded(row.customers),

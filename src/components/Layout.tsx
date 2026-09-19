@@ -16,7 +16,7 @@ export function Layout() {
   }
 
   return (
-    <div className="flex min-h-dvh flex-col bg-paper">
+    <div className="flex h-dvh flex-col overflow-hidden bg-paper">
       <SessionIdleGuard />
       <header className="sticky top-0 z-40 border-b border-line bg-surface/90 backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-2.5">
@@ -46,7 +46,7 @@ export function Layout() {
         ) : null}
       </header>
 
-      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 pb-24 md:pb-8">
+      <main className="mx-auto flex min-h-0 w-full max-w-7xl flex-1 flex-col overflow-auto px-4 py-6 pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-8">
         <Outlet />
       </main>
 

@@ -11,6 +11,7 @@ export type Kpis = {
   visas: number;
   extensions: number;
   activeVisas: number;
+  notLanded: number;
   archivedVisas: number;
   extToday: number;
   extDue10: number;
@@ -25,7 +26,8 @@ export type CompanyMetrics = Kpis & {
 
 export type VisaForMetrics = {
   status: VisaStatus;
-  date_to_extension: string;
+  date_entered: string | null;
+  date_to_extension: string | null;
   extension_done: boolean;
   company_id: string | null;
 };
@@ -39,6 +41,7 @@ const emptyKpis = (companyCount: number, customerCount = 0): Kpis => ({
   visas: 0,
   extensions: 0,
   activeVisas: 0,
+  notLanded: 0,
   archivedVisas: 0,
   extToday: 0,
   extDue10: 0,
@@ -86,7 +89,8 @@ function addVisaKpis(kpis: Kpis, visas: VisaForMetrics[]) {
   for (const v of visas) {
     if (v.status === "In-Progress") {
       kpis.activeVisas += 1;
-      if (v.extension_done) continue;
+      if (!v.date_entered) kpis.notLanded += 1;
+      if (v.extension_done || !v.date_to_extension) continue;
       const d = daysUntilISODate(v.date_to_extension);
       if (d === 0) kpis.extToday += 1;
       else if (d > 0 && d <= 10) kpis.extDue10 += 1;

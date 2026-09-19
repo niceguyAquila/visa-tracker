@@ -93,15 +93,17 @@ export function VisaFields({
           <FieldError message={errors.visaDays} />
         </label>
         <label className="block">
-          <FieldLabel required={required}>Date entered</FieldLabel>
+          <FieldLabel>Date entered</FieldLabel>
           <input
             type="date"
-            required={required}
             value={value.dateEntered}
             onChange={(e) => onChange({ dateEntered: e.target.value })}
             className={errors.dateEntered ? inputErrorClass : inputClass}
             aria-invalid={Boolean(errors.dateEntered)}
           />
+          <p className="mt-1 text-xs text-muted">
+            Optional. Leave blank if the customer has not landed yet.
+          </p>
           <FieldError message={errors.dateEntered} />
         </label>
       </div>
@@ -138,7 +140,12 @@ export function VisaFields({
           <TimelineStep
             label="Entered"
             value={
-              value.dateEntered ? formatDisplayDate(value.dateEntered) : "—"
+              value.dateEntered ? formatDisplayDate(value.dateEntered) : "Not landed"
+            }
+            hint={
+              !value.dateEntered
+                ? "Fill in when the customer lands"
+                : undefined
             }
           />
           <TimelineStep
@@ -147,6 +154,9 @@ export function VisaFields({
               previewDateToExtension
                 ? formatDisplayDate(previewDateToExtension)
                 : "—"
+            }
+            hint={
+              !value.dateEntered ? "After date entered is set" : undefined
             }
           />
           <TimelineStep
