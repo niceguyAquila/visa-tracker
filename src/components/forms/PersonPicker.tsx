@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import { currentPassport } from "../../lib/customer";
 import type { CustomerWithCompany } from "../../types";
 import {
   FieldError,
@@ -27,6 +28,7 @@ export function PersonPicker({
   error,
 }: PersonPickerProps) {
   const selected = customers.find((c) => c.id === customerId) ?? null;
+  const selectedPassport = currentPassport(selected?.passports);
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -52,7 +54,6 @@ export function PersonPicker({
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q || (selected && query.startsWith(selected.full_name))) {
-      // When showing selected label, still allow browsing all on open with empty filter intent
       if (selected && query.includes(selected.full_name) && open) {
         const typed = query.toLowerCase();
         const selectedLabel =
@@ -62,7 +63,11 @@ export function PersonPicker({
     }
     if (!q) return customers;
     return customers.filter((c) => {
-      const hay = `${c.full_name} ${c.passport_number} ${c.companies?.name ?? ""}`.toLowerCase();
+      const numbers = (c.passports ?? [])
+        .map((p) => p.passport_number)
+        .join(" ");
+      const hay =
+        `${c.full_name} ${numbers} ${c.companies?.name ?? ""}`.toLowerCase();
       return hay.includes(q);
     });
   }, [customers, query, selected, open]);
@@ -144,25 +149,28 @@ export function PersonPicker({
                     No matches
                   </li>
                 ) : (
-                  filtered.map((c) => (
-                    <li key={c.id} role="option" aria-selected={c.id === customerId}>
-                      <button
-                        type="button"
-                        className={`flex w-full flex-col items-start px-3 py-2 text-left text-sm hover:bg-paper ${
-                          c.id === customerId ? "bg-brand-soft" : ""
-                        }`}
-                        onClick={() => pick(c)}
-                      >
-                        <span className="font-medium text-ink">
-                          {c.full_name}
-                        </span>
-                        <span className="text-xs text-muted">
-                          {c.passport_number}
-                          {c.companies?.name ? ` · ${c.companies.name}` : ""}
-                        </span>
-                      </button>
-                    </li>
-                  ))
+                  filtered.map((c) => {
+                    const current = currentPassport(c.passports);
+                    return (
+                      <li key={c.id} role="option" aria-selected={c.id === customerId}>
+                        <button
+                          type="button"
+                          className={`flex w-full flex-col items-start px-3 py-2 text-left text-sm hover:bg-paper ${
+                            c.id === customerId ? "bg-brand-soft" : ""
+                          }`}
+                          onClick={() => pick(c)}
+                        >
+                          <span className="font-medium text-ink">
+                            {c.full_name}
+                          </span>
+                          <span className="text-xs text-muted">
+                            {current?.passport_number ?? "No passport"}
+                            {c.companies?.name ? ` · ${c.companies.name}` : ""}
+                          </span>
+                        </button>
+                      </li>
+                    );
+                  })
                 )}
               </ul>
             ) : null}
@@ -183,7 +191,9 @@ export function PersonPicker({
             <span className="meta">
               Passport
             </span>
-            <p className={readOnlyClass}>{selected.passport_number}</p>
+            <p className={readOnlyClass}>
+              {selectedPassport?.passport_number ?? "—"}
+            </p>
           </div>
           <div>
             <span className="meta">

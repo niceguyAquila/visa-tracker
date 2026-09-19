@@ -81,8 +81,8 @@ export function CustomerForm() {
       setPerson({
         fullName: customer.full_name,
         companyId: customer.company_id,
-        passportNumber: customer.passport_number,
-        passportExpiry: customer.passport_expiry,
+        passportNumber: "",
+        passportExpiry: "",
         visaCount: customer.visa_count,
         extensionCount: customer.extension_count,
         dialCode: parsed.dialCode,
@@ -116,8 +116,6 @@ export function CustomerForm() {
       .from("customers")
       .update({
         full_name: person.fullName.trim(),
-        passport_number: person.passportNumber.trim(),
-        passport_expiry: person.passportExpiry,
         visa_count: Math.max(0, Math.floor(Number(person.visaCount)) || 0),
         extension_count: Math.max(
           0,
@@ -152,6 +150,9 @@ export function CustomerForm() {
         <h1 className="page-title mt-2">
           Edit customer
         </h1>
+        <p className="page-sub mt-1">
+          Passports are managed on the customer page.
+        </p>
       </div>
 
       <form
@@ -162,6 +163,7 @@ export function CustomerForm() {
           value={person}
           companies={companies}
           onChange={(patch) => setPerson((prev) => ({ ...prev, ...patch }))}
+          showPassport={false}
         />
 
         {error ? <p className="text-sm text-red-700">{error}</p> : null}

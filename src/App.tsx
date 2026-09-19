@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { Layout } from "./components/Layout";
 import { GuestRoute, ProtectedRoute } from "./components/ProtectedRoute";
 import { CustomerDetail } from "./pages/CustomerDetail";
+import { CustomerDuplicatesPage } from "./pages/CustomerDuplicatesPage";
 import { CustomerForm } from "./pages/CustomerForm";
 import { CustomersPage } from "./pages/CustomersPage";
 import { Dashboard } from "./pages/Dashboard";
@@ -45,6 +46,10 @@ export default function App() {
           <Route
             path="/customers/new"
             element={<EntryForm defaultMode="personAndVisa" />}
+          />
+          <Route
+            path="/customers/duplicates"
+            element={<CustomerDuplicatesPage />}
           />
           <Route path="/customers/:id/edit" element={<CustomerForm />} />
           <Route path="/customers/:id" element={<CustomerDetail />} />

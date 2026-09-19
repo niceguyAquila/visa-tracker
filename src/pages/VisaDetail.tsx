@@ -7,7 +7,7 @@ import { statusBadgeClass, urgencyClass } from "../lib/ui";
 import type { VisaWithCustomer } from "../types";
 
 const VISA_SELECT =
-  "*, customers ( id, full_name, passport_number, company_id, companies ( id, name, color ) )";
+  "*, customers ( id, full_name, company_id, companies ( id, name, color ) ), passports!passport_id ( id, passport_number, passport_expiry )";
 
 function relativeLabel(
   days: number,
@@ -258,7 +258,7 @@ export function VisaDetail() {
               Passport number
             </dt>
             <dd className="mt-1 font-mono text-sm text-ink">
-              {visa.customers?.passport_number ?? "—"}
+              {visa.passports?.passport_number ?? "—"}
             </dd>
           </div>
           <div>

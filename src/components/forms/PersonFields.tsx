@@ -37,6 +37,7 @@ type PersonFieldsProps = {
   onChange: (patch: Partial<PersonFieldsValue>) => void;
   errors?: PersonFieldErrors;
   blocked?: boolean;
+  showPassport?: boolean;
 };
 
 export function PersonFields({
@@ -45,6 +46,7 @@ export function PersonFields({
   onChange,
   errors = {},
   blocked = false,
+  showPassport = true,
 }: PersonFieldsProps) {
   const [historyOpen, setHistoryOpen] = useState(
     value.visaCount > 0 || value.extensionCount > 0
@@ -126,36 +128,38 @@ export function PersonFields({
         </div>
       </div>
 
-      <div className="space-y-4 border-t border-line pt-5">
-        <p className="meta">
-          Passport
-        </p>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <label className="block">
-            <FieldLabel required>Passport number</FieldLabel>
-            <input
-              required
-              value={value.passportNumber}
-              onChange={(e) => onChange({ passportNumber: e.target.value })}
-              className={errors.passportNumber ? inputErrorClass : inputClass}
-              aria-invalid={Boolean(errors.passportNumber)}
-            />
-            <FieldError message={errors.passportNumber} />
-          </label>
-          <label className="block">
-            <FieldLabel required>Passport expiry</FieldLabel>
-            <input
-              type="date"
-              required
-              value={value.passportExpiry}
-              onChange={(e) => onChange({ passportExpiry: e.target.value })}
-              className={errors.passportExpiry ? inputErrorClass : inputClass}
-              aria-invalid={Boolean(errors.passportExpiry)}
-            />
-            <FieldError message={errors.passportExpiry} />
-          </label>
+      {showPassport ? (
+        <div className="space-y-4 border-t border-line pt-5">
+          <p className="meta">
+            Passport
+          </p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="block">
+              <FieldLabel required>Passport number</FieldLabel>
+              <input
+                required
+                value={value.passportNumber}
+                onChange={(e) => onChange({ passportNumber: e.target.value })}
+                className={errors.passportNumber ? inputErrorClass : inputClass}
+                aria-invalid={Boolean(errors.passportNumber)}
+              />
+              <FieldError message={errors.passportNumber} />
+            </label>
+            <label className="block">
+              <FieldLabel required>Passport expiry</FieldLabel>
+              <input
+                type="date"
+                required
+                value={value.passportExpiry}
+                onChange={(e) => onChange({ passportExpiry: e.target.value })}
+                className={errors.passportExpiry ? inputErrorClass : inputClass}
+                aria-invalid={Boolean(errors.passportExpiry)}
+              />
+              <FieldError message={errors.passportExpiry} />
+            </label>
+          </div>
         </div>
-      </div>
+      ) : null}
 
       <div className="space-y-3 border-t border-line pt-5">
         <button

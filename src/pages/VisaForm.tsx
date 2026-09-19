@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { PassportSelect } from "../components/forms/PassportSelect";
 import { PersonPicker } from "../components/forms/PersonPicker";
 import { FormSection, SectionHeading } from "../components/forms/formStyles";
 import {
@@ -7,6 +8,7 @@ import {
   type VisaFieldsValue,
 } from "../components/forms/VisaFields";
 import { VisaStatusFields } from "../components/forms/VisaStatusFields";
+import { CUSTOMER_LIST_SELECT } from "../lib/customer";
 import { getDefaultOrgId } from "../lib/org";
 import {
   computeVisaStatus,
@@ -24,6 +26,7 @@ export function VisaForm() {
   const [customers, setCustomers] = useState<CustomerWithCompany[]>([]);
   const [customPorts, setCustomPorts] = useState<string[]>([]);
   const [customerId, setCustomerId] = useState("");
+  const [passportId, setPassportId] = useState("");
   const [visa, setVisa] = useState<VisaFieldsValue>({
     visaDays: "90 Days",
     dateEntered: "",
@@ -56,7 +59,7 @@ export function VisaForm() {
       ] = await Promise.all([
         supabase
           .from("customers")
-          .select("*, companies ( id, name )")
+          .select(CUSTOMER_LIST_SELECT)
           .order("full_name", { ascending: true }),
         supabase
           .from("entry_ports")
@@ -69,7 +72,12 @@ export function VisaForm() {
         setLoading(false);
         return;
       }
-      setCustomers((custRows ?? []) as CustomerWithCompany[]);
+      setCustomers(
+        ((custRows ?? []) as CustomerWithCompany[]).map((c) => ({
+          ...c,
+          passports: c.passports ?? [],
+        }))
+      );
       setCustomPorts(
         portErr
           ? []
@@ -95,6 +103,7 @@ export function VisaForm() {
       }
       const rowVisa = row as Visa;
       setCustomerId(rowVisa.customer_id);
+      setPassportId(rowVisa.passport_id);
       setVisa({
         visaDays: rowVisa.visa_days,
         dateEntered: rowVisa.date_entered,
@@ -123,6 +132,10 @@ export function VisaForm() {
       setError("Customer is required.");
       return;
     }
+    if (!passportId) {
+      setError("Passport is required.");
+      return;
+    }
     if (!visa.dateEntered) {
       setError("Date entered is required.");
       return;
@@ -136,6 +149,7 @@ export function VisaForm() {
       .from("visas")
       .update({
         customer_id: customerId,
+        passport_id: passportId,
         visa_days: visa.visaDays,
         date_entered: visa.dateEntered,
         date_extended: visa.dateExtended || null,
@@ -182,6 +196,13 @@ export function VisaForm() {
             customerId={customerId}
             onCustomerIdChange={setCustomerId}
             disabled
+          />
+          <PassportSelect
+            passports={
+              customers.find((c) => c.id === customerId)?.passports ?? []
+            }
+            passportId={passportId}
+            onChange={setPassportId}
           />
         </FormSection>
 

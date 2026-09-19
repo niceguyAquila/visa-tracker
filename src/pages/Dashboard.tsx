@@ -10,6 +10,7 @@ import {
   type Kpis,
   type VisaForMetrics,
 } from "../lib/metrics";
+import { currentPassport, CUSTOMER_LIST_SELECT } from "../lib/customer";
 import { supabase } from "../lib/supabase";
 import { kpiToneClass, urgencyClass } from "../lib/ui";
 import type { Company, CustomerWithCompany, VisaStatus } from "../types";
@@ -203,7 +204,7 @@ export function Dashboard() {
       supabase.from("companies").select("*").order("name", { ascending: true }),
       supabase
         .from("customers")
-        .select("*, companies ( id, name, color )")
+        .select(CUSTOMER_LIST_SELECT)
         .order("full_name", { ascending: true }),
       supabase
         .from("visas")
@@ -229,14 +230,24 @@ export function Dashboard() {
     if (visaRes.error) {
       setError(visaRes.error.message);
       setCompanies((coRes.data ?? []) as Company[]);
-      setCustomers((cuRes.data ?? []) as CustomerWithCompany[]);
+      setCustomers(
+        ((cuRes.data ?? []) as CustomerWithCompany[]).map((c) => ({
+          ...c,
+          passports: c.passports ?? [],
+        }))
+      );
       setVisas([]);
       setLoading(false);
       return;
     }
 
     setCompanies((coRes.data ?? []) as Company[]);
-    setCustomers((cuRes.data ?? []) as CustomerWithCompany[]);
+    setCustomers(
+      ((cuRes.data ?? []) as CustomerWithCompany[]).map((c) => ({
+        ...c,
+        passports: c.passports ?? [],
+      }))
+    );
     setVisas(
       (visaRes.data ?? []).map((row) => ({
         status: row.status as VisaStatus,
@@ -279,9 +290,13 @@ export function Dashboard() {
   );
 
   const sortedFocused = useMemo(() => {
-    return [...scopedCustomers].sort(
-      (a, b) => parseISODateNum(a.passport_expiry) - parseISODateNum(b.passport_expiry)
-    );
+    return [...scopedCustomers].sort((a, b) => {
+      const aP = currentPassport(a.passports);
+      const bP = currentPassport(b.passports);
+      const aN = aP ? parseISODateNum(aP.passport_expiry) : Number.MAX_SAFE_INTEGER;
+      const bN = bP ? parseISODateNum(bP.passport_expiry) : Number.MAX_SAFE_INTEGER;
+      return aN - bN;
+    });
   }, [scopedCustomers]);
 
   function setFocusedCompany(id: string | null) {
@@ -361,27 +376,34 @@ export function Dashboard() {
               ) : (
                 <ul className="space-y-3">
                   {sortedFocused.map((c) => {
-                    const d = daysUntilISODate(c.passport_expiry);
+                    const current = currentPassport(c.passports);
+                    const d = current
+                      ? daysUntilISODate(current.passport_expiry)
+                      : null;
                     return (
                       <li key={c.id}>
                         <Link to={`/customers/${c.id}`} className="list-card">
                           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                             <p className="font-medium text-ink">{c.full_name}</p>
-                            <div
-                              className={`inline-flex flex-col rounded-lg px-3 py-2 text-sm sm:items-end ${urgencyClass(d)}`}
-                            >
-                              <span className="meta opacity-80">Passport</span>
-                              <span className="font-medium tabular-nums">
-                                {formatDisplayDate(c.passport_expiry)}
-                              </span>
-                              <span className="text-xs opacity-90">
-                                {d < 0
-                                  ? `Expired ${Math.abs(d)}d ago`
-                                  : d === 0
-                                    ? "Expires today (UTC)"
-                                    : `${d}d until expiry (UTC)`}
-                              </span>
-                            </div>
+                            {current && d !== null ? (
+                              <div
+                                className={`inline-flex flex-col rounded-lg px-3 py-2 text-sm sm:items-end ${urgencyClass(d)}`}
+                              >
+                                <span className="meta opacity-80">Passport</span>
+                                <span className="font-medium tabular-nums">
+                                  {formatDisplayDate(current.passport_expiry)}
+                                </span>
+                                <span className="text-xs opacity-90">
+                                  {d < 0
+                                    ? `Expired ${Math.abs(d)}d ago`
+                                    : d === 0
+                                      ? "Expires today (UTC)"
+                                      : `${d}d until expiry (UTC)`}
+                                </span>
+                              </div>
+                            ) : (
+                              <p className="text-sm text-muted">No passport</p>
+                            )}
                           </div>
                         </Link>
                       </li>

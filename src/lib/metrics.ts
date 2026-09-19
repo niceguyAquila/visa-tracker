@@ -1,5 +1,6 @@
+import { currentPassport } from "./customer";
 import { daysUntilISODate } from "./dates";
-import type { Company, Customer, VisaStatus } from "../types";
+import type { Company, CustomerWithCompany, Passport, VisaStatus } from "../types";
 
 export type Kpis = {
   customers: number;
@@ -44,10 +45,17 @@ const emptyKpis = (companyCount: number, customerCount = 0): Kpis => ({
   extDue30: 0,
 });
 
-export function customersForCompany(
-  customers: Customer[],
+export type CustomerForMetrics = Pick<
+  CustomerWithCompany,
+  "company_id" | "visa_count" | "extension_count"
+> & {
+  passports?: Passport[];
+};
+
+export function customersForCompany<T extends { company_id: string }>(
+  customers: T[],
   companyId: string | null
-): Customer[] {
+): T[] {
   if (!companyId) return customers;
   return customers.filter((c) => c.company_id === companyId);
 }
@@ -60,12 +68,15 @@ export function visasForCompany(
   return visas.filter((v) => v.company_id === companyId);
 }
 
-function addPassportKpis(kpis: Kpis, customers: Customer[]) {
+function addPassportKpis(kpis: Kpis, customers: CustomerForMetrics[]) {
   for (const c of customers) {
-    const d = daysUntilISODate(c.passport_expiry);
-    if (d < 0) kpis.expired += 1;
-    else if (d <= 10) kpis.expiring10 += 1;
-    else if (d <= 30) kpis.expiring30 += 1;
+    const current = currentPassport(c.passports);
+    if (current) {
+      const d = daysUntilISODate(current.passport_expiry);
+      if (d < 0) kpis.expired += 1;
+      else if (d <= 10) kpis.expiring10 += 1;
+      else if (d <= 30) kpis.expiring30 += 1;
+    }
     kpis.visas += c.visa_count;
     kpis.extensions += c.extension_count;
   }
@@ -87,7 +98,7 @@ function addVisaKpis(kpis: Kpis, visas: VisaForMetrics[]) {
 }
 
 export function aggregateKpis(
-  customers: Customer[],
+  customers: CustomerForMetrics[],
   companyCount: number,
   visas: VisaForMetrics[] = []
 ): Kpis {
@@ -99,7 +110,7 @@ export function aggregateKpis(
 
 export function metricsByCompany(
   companies: Company[],
-  customers: Customer[],
+  customers: CustomerForMetrics[],
   visas: VisaForMetrics[] = []
 ): CompanyMetrics[] {
   return companies

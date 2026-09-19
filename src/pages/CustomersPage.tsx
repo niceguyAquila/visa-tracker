@@ -2,10 +2,15 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { AddFab } from "../components/AddFab";
 import { CompanyChip } from "../components/CompanyChip";
+import {
+  currentPassport,
+  CUSTOMER_LIST_SELECT,
+  unresolvedDuplicateGroups,
+} from "../lib/customer";
 import { supabase } from "../lib/supabase";
 import { daysUntilISODate, formatDisplayDate } from "../lib/dates";
 import { urgencyClass } from "../lib/ui";
-import type { CustomerWithCompany } from "../types";
+import type { CustomerWithCompany, DuplicateExclusion } from "../types";
 
 const inputClass = "input-field text-sm";
 
@@ -25,15 +30,19 @@ function parseExpiryFilter(value: string | null): ExpiryFilter {
 
 function matchesQuery(c: CustomerWithCompany, q: string): boolean {
   if (!q) return true;
+  const numbers = (c.passports ?? [])
+    .map((p) => p.passport_number.toLowerCase())
+    .join(" ");
   return (
     c.full_name.toLowerCase().includes(q) ||
-    c.passport_number.toLowerCase().includes(q) ||
+    numbers.includes(q) ||
     c.contact_number.toLowerCase().includes(q) ||
     (c.companies?.name ?? "").toLowerCase().includes(q)
   );
 }
 
-function matchesExpiry(days: number, filter: ExpiryFilter): boolean {
+function matchesExpiry(days: number | null, filter: ExpiryFilter): boolean {
+  if (days === null) return filter === "all";
   switch (filter) {
     case "expired":
       return days < 0;
@@ -55,22 +64,39 @@ export function CustomersPage() {
   const expiry = parseExpiryFilter(searchParams.get("expiry"));
 
   const [rows, setRows] = useState<CustomerWithCompany[]>([]);
+  const [exclusions, setExclusions] = useState<DuplicateExclusion[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
-    const { data, error: qErr } = await supabase
-      .from("customers")
-      .select("*, companies ( id, name, color )")
-      .order("full_name", { ascending: true });
+    const [{ data, error: qErr }, { data: exRows, error: exErr }] =
+      await Promise.all([
+        supabase
+          .from("customers")
+          .select(CUSTOMER_LIST_SELECT)
+          .order("full_name", { ascending: true }),
+        supabase.from("duplicate_exclusions").select("*"),
+      ]);
 
     if (qErr) {
       setError(qErr.message);
       setRows([]);
+      setExclusions([]);
     } else {
-      setRows((data ?? []) as CustomerWithCompany[]);
+      setRows(
+        ((data ?? []) as CustomerWithCompany[]).map((c) => ({
+          ...c,
+          passports: c.passports ?? [],
+        }))
+      );
+      if (exErr && !/schema cache|does not exist/i.test(exErr.message)) {
+        setError(exErr.message);
+        setExclusions([]);
+      } else {
+        setExclusions((exRows ?? []) as DuplicateExclusion[]);
+      }
     }
     setLoading(false);
   }, []);
@@ -89,6 +115,11 @@ export function CustomersPage() {
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [rows]);
 
+  const duplicateCount = useMemo(
+    () => unresolvedDuplicateGroups(rows, exclusions).length,
+    [rows, exclusions]
+  );
+
   const filtersActive = Boolean(query.trim() || companyId || expiry !== "all");
 
   const filtered = useMemo(() => {
@@ -97,11 +128,17 @@ export function CustomersPage() {
       .filter((c) => {
         if (companyId && c.company_id !== companyId) return false;
         if (!matchesQuery(c, q)) return false;
-        return matchesExpiry(daysUntilISODate(c.passport_expiry), expiry);
+        const current = currentPassport(c.passports);
+        const days = current ? daysUntilISODate(current.passport_expiry) : null;
+        return matchesExpiry(days, expiry);
       })
-      .sort(
-        (a, b) => parseISODateNum(a.passport_expiry) - parseISODateNum(b.passport_expiry)
-      );
+      .sort((a, b) => {
+        const aP = currentPassport(a.passports);
+        const bP = currentPassport(b.passports);
+        const aN = aP ? parseISODateNum(aP.passport_expiry) : Number.MAX_SAFE_INTEGER;
+        const bN = bP ? parseISODateNum(bP.passport_expiry) : Number.MAX_SAFE_INTEGER;
+        return aN - bN;
+      });
   }, [rows, query, companyId, expiry]);
 
   function updateParams(updates: Record<string, string>) {
@@ -146,6 +183,25 @@ export function CustomersPage() {
         </div>
       ) : (
         <>
+          {duplicateCount > 0 ? (
+            <div className="callout-warn">
+              <p className="font-medium">
+                {duplicateCount} possible duplicate
+                {duplicateCount === 1 ? "" : "s"}
+              </p>
+              <p className="mt-1 opacity-80">
+                Same name and company with different passport numbers. Merge
+                renewals, or mark different people as distinct.
+              </p>
+              <Link
+                to="/customers/duplicates"
+                className="link-brand mt-2 inline-block"
+              >
+                Review and merge →
+              </Link>
+            </div>
+          ) : null}
+
           <div className="filter-panel">
             <label className="block text-sm">
               <span className="mb-1 block font-medium text-ink-soft">Search</span>
@@ -227,7 +283,10 @@ export function CustomersPage() {
           ) : (
             <ul className="space-y-3">
               {filtered.map((c) => {
-                const d = daysUntilISODate(c.passport_expiry);
+                const current = currentPassport(c.passports);
+                const d = current
+                  ? daysUntilISODate(current.passport_expiry)
+                  : null;
                 return (
                   <li key={c.id}>
                     <Link
@@ -252,25 +311,32 @@ export function CustomersPage() {
                         </div>
                         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                           <p className="font-mono text-sm text-ink-soft">
-                            {c.passport_number}
+                            {current?.passport_number ?? "No passport"}
+                            {(c.passports ?? []).length > 1
+                              ? ` · ${(c.passports ?? []).length} passports`
+                              : ""}
                           </p>
-                          <div
-                            className={`inline-flex flex-col rounded-lg px-3 py-2 text-sm sm:items-end ${urgencyClass(d)}`}
-                          >
-                            <span className="meta opacity-80">
-                              Passport expiry
-                            </span>
-                            <span className="font-medium tabular-nums">
-                              {formatDisplayDate(c.passport_expiry)}
-                            </span>
-                            <span className="text-xs opacity-90">
-                              {d < 0
-                                ? `Expired ${Math.abs(d)}d ago`
-                                : d === 0
-                                  ? "Expires today (UTC)"
-                                  : `${d}d until expiry (UTC)`}
-                            </span>
-                          </div>
+                          {current && d !== null ? (
+                            <div
+                              className={`inline-flex flex-col rounded-lg px-3 py-2 text-sm sm:items-end ${urgencyClass(d)}`}
+                            >
+                              <span className="meta opacity-80">
+                                Passport expiry
+                              </span>
+                              <span className="font-medium tabular-nums">
+                                {formatDisplayDate(current.passport_expiry)}
+                              </span>
+                              <span className="text-xs opacity-90">
+                                {d < 0
+                                  ? `Expired ${Math.abs(d)}d ago`
+                                  : d === 0
+                                    ? "Expires today (UTC)"
+                                    : `${d}d until expiry (UTC)`}
+                              </span>
+                            </div>
+                          ) : (
+                            <p className="text-sm text-muted">No expiry date</p>
+                          )}
                         </div>
                       </div>
                     </Link>

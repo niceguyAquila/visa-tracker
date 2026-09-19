@@ -5,6 +5,7 @@ import {
   type PersonFieldErrors,
   type PersonFieldsValue,
 } from "../components/forms/PersonFields";
+import { PassportSelect } from "../components/forms/PassportSelect";
 import { PersonPicker } from "../components/forms/PersonPicker";
 import { SectionHeading, FormSection } from "../components/forms/formStyles";
 import {
@@ -13,6 +14,12 @@ import {
   type VisaFieldsValue,
 } from "../components/forms/VisaFields";
 import { VisaStatusFields } from "../components/forms/VisaStatusFields";
+import {
+  currentPassport,
+  CUSTOMER_LIST_SELECT,
+  friendlyPassportConflict,
+  namesMatch,
+} from "../lib/customer";
 import { getDefaultOrgId } from "../lib/org";
 import {
   composePhone,
@@ -69,7 +76,9 @@ type FieldErrors = {
   person?: PersonFieldErrors;
   visa?: VisaFieldErrors;
   customerId?: string;
+  passportId?: string;
   form?: string;
+  duplicateMatches?: CustomerWithCompany[];
 };
 
 type EntryFormProps = {
@@ -88,6 +97,7 @@ export function EntryForm({ defaultMode }: EntryFormProps) {
   const [person, setPerson] = useState<PersonFieldsValue>(emptyPerson);
   const [visa, setVisa] = useState<VisaFieldsValue>(emptyVisa);
   const [existingCustomerId, setExistingCustomerId] = useState("");
+  const [existingPassportId, setExistingPassportId] = useState("");
   const [visaState, setVisaState] = useState<VisaStatus>("In-Progress");
   const [markAsOpen, setMarkAsOpen] = useState(false);
   const [errors, setErrors] = useState<FieldErrors>({});
@@ -121,7 +131,7 @@ export function EntryForm({ defaultMode }: EntryFormProps) {
           supabase.from("companies").select("*").order("name", { ascending: true }),
           supabase
             .from("customers")
-            .select("*, companies ( id, name )")
+            .select(CUSTOMER_LIST_SELECT)
             .order("full_name", { ascending: true }),
           supabase
             .from("entry_ports")
@@ -142,7 +152,12 @@ export function EntryForm({ defaultMode }: EntryFormProps) {
       }
 
       setCompanies((cos ?? []) as Company[]);
-      setCustomers((custRows ?? []) as CustomerWithCompany[]);
+      setCustomers(
+        ((custRows ?? []) as CustomerWithCompany[]).map((c) => ({
+          ...c,
+          passports: c.passports ?? [],
+        }))
+      );
       setCustomPorts(
         portErr
           ? []
@@ -161,6 +176,19 @@ export function EntryForm({ defaultMode }: EntryFormProps) {
     };
   }, [searchParams]);
 
+  useEffect(() => {
+    if (!existingCustomerId) {
+      setExistingPassportId("");
+      return;
+    }
+    const selected = customers.find((c) => c.id === existingCustomerId);
+    const current = currentPassport(selected?.passports);
+    setExistingPassportId((prev) => {
+      if (prev && selected?.passports?.some((p) => p.id === prev)) return prev;
+      return current?.id ?? "";
+    });
+  }, [existingCustomerId, customers]);
+
   function patchPerson(patch: Partial<PersonFieldsValue>) {
     setPerson((prev) => ({ ...prev, ...patch }));
     setErrors((prev) => ({
@@ -171,6 +199,10 @@ export function EntryForm({ defaultMode }: EntryFormProps) {
           )
         : undefined,
       form: undefined,
+      duplicateMatches:
+        "fullName" in patch || "companyId" in patch
+          ? undefined
+          : prev.duplicateMatches,
     }));
   }
 
@@ -286,6 +318,9 @@ export function EntryForm({ defaultMode }: EntryFormProps) {
       if (!existingCustomerId) {
         next.customerId = "Select a customer.";
       }
+      if (!existingPassportId) {
+        next.passportId = "Select a passport.";
+      }
     }
 
     if (mode === "personAndVisa" || mode === "visaOnly") {
@@ -299,7 +334,8 @@ export function EntryForm({ defaultMode }: EntryFormProps) {
     return (
       !next.person &&
       !next.visa &&
-      !next.customerId
+      !next.customerId &&
+      !next.passportId
     );
   }
 
@@ -348,11 +384,26 @@ export function EntryForm({ defaultMode }: EntryFormProps) {
     return busy || !orgId || isBlocked;
   }
 
-  async function insertPerson(org: string): Promise<string | null> {
+  async function insertPerson(
+    org: string,
+    forceNewPerson = false
+  ): Promise<{ customerId: string; passportId: string } | null> {
+    if (!forceNewPerson) {
+      const matches = customers.filter(
+        (c) =>
+          c.company_id === person.companyId &&
+          namesMatch(c.full_name, person.fullName)
+      );
+      if (matches.length) {
+        setErrors({
+          duplicateMatches: matches,
+        });
+        return null;
+      }
+    }
+
     const payload = {
       full_name: person.fullName.trim(),
-      passport_number: person.passportNumber.trim(),
-      passport_expiry: person.passportExpiry,
       visa_count: Math.max(0, Math.floor(Number(person.visaCount)) || 0),
       extension_count: Math.max(0, Math.floor(Number(person.extensionCount)) || 0),
       contact_number: composePhone(person.dialCode, person.localNumber),
@@ -369,12 +420,40 @@ export function EntryForm({ defaultMode }: EntryFormProps) {
       setErrors({ form: iErr?.message ?? "Could not create customer." });
       return null;
     }
-    return (data as { id: string }).id;
+
+    const customerId = (data as { id: string }).id;
+    const { data: passportRow, error: pErr } = await supabase
+      .from("passports")
+      .insert({
+        org_id: org,
+        customer_id: customerId,
+        passport_number: person.passportNumber.trim(),
+        passport_expiry: person.passportExpiry,
+        is_current: true,
+      })
+      .select("id")
+      .single();
+
+    if (pErr || !passportRow) {
+      await supabase.from("customers").delete().eq("id", customerId);
+      setErrors({
+        form: friendlyPassportConflict(
+          pErr?.message ?? "Could not save passport."
+        ),
+      });
+      return null;
+    }
+
+    return {
+      customerId,
+      passportId: (passportRow as { id: string }).id,
+    };
   }
 
   async function insertVisa(
     org: string,
     customerId: string,
+    passportId: string,
     state: VisaStatus
   ): Promise<{ id: string } | { error: string }> {
     const flags = flagsFromVisaStatus(state);
@@ -383,6 +462,7 @@ export function EntryForm({ defaultMode }: EntryFormProps) {
       .insert({
         org_id: org,
         customer_id: customerId,
+        passport_id: passportId,
         visa_days: visa.visaDays,
         date_entered: visa.dateEntered,
         date_extended: visa.dateExtended || null,
@@ -407,6 +487,10 @@ export function EntryForm({ defaultMode }: EntryFormProps) {
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
+    await saveEntry(false);
+  }
+
+  async function saveEntry(forceNewPerson: boolean) {
     if (!orgId || isBlocked) return;
     if (!validate()) return;
 
@@ -414,39 +498,49 @@ export function EntryForm({ defaultMode }: EntryFormProps) {
     setBusy(true);
 
     if (mode === "personOnly") {
-      const customerId = await insertPerson(orgId);
+      const created = await insertPerson(orgId, forceNewPerson);
       setBusy(false);
-      if (!customerId) return;
-      navigate(`/customers/${customerId}`, {
+      if (!created) return;
+      navigate(`/customers/${created.customerId}`, {
         state: { flashSuccess: "Customer created." },
       });
       return;
     }
 
     if (mode === "personAndVisa") {
-      const customerId = await insertPerson(orgId);
-      if (!customerId) {
+      const created = await insertPerson(orgId, forceNewPerson);
+      if (!created) {
         setBusy(false);
         return;
       }
 
-      const result = await insertVisa(orgId, customerId, "In-Progress");
+      const result = await insertVisa(
+        orgId,
+        created.customerId,
+        created.passportId,
+        "In-Progress"
+      );
       setBusy(false);
       if ("error" in result) {
-        navigate(`/customers/${customerId}`, {
+        navigate(`/customers/${created.customerId}`, {
           state: {
             flashError: `Customer was created, but visa failed: ${result.error}`,
           },
         });
         return;
       }
-      navigate(`/customers/${customerId}`, {
+      navigate(`/customers/${created.customerId}`, {
         state: { flashSuccess: "Customer and visa created." },
       });
       return;
     }
 
-    const result = await insertVisa(orgId, existingCustomerId, visaState);
+    const result = await insertVisa(
+      orgId,
+      existingCustomerId,
+      existingPassportId,
+      visaState
+    );
     setBusy(false);
     if ("error" in result) {
       setErrors({ form: result.error });
@@ -552,11 +646,29 @@ export function EntryForm({ defaultMode }: EntryFormProps) {
                   customerId={existingCustomerId}
                   onCustomerIdChange={(id) => {
                     setExistingCustomerId(id);
-                    setErrors((prev) => ({ ...prev, customerId: undefined }));
+                    setErrors((prev) => ({
+                      ...prev,
+                      customerId: undefined,
+                      passportId: undefined,
+                    }));
                   }}
                   emptyHintHref="/customers/new"
                   error={errors.customerId}
                 />
+                {existingCustomerId ? (
+                  <PassportSelect
+                    passports={
+                      customers.find((c) => c.id === existingCustomerId)
+                        ?.passports ?? []
+                    }
+                    passportId={existingPassportId}
+                    onChange={(id) => {
+                      setExistingPassportId(id);
+                      setErrors((prev) => ({ ...prev, passportId: undefined }));
+                    }}
+                    error={errors.passportId}
+                  />
+                ) : null}
               </FormSection>
             ) : null}
 
@@ -599,6 +711,47 @@ export function EntryForm({ defaultMode }: EntryFormProps) {
               </FormSection>
             ) : null}
           </>
+        ) : null}
+
+        {errors.duplicateMatches?.length ? (
+          <div className="callout-warn">
+            <p className="font-medium">
+              {errors.duplicateMatches.length === 1
+                ? "A customer with this name already exists at that company"
+                : `${errors.duplicateMatches.length} customers with this name already exist at that company`}
+            </p>
+            <p className="mt-1 opacity-80">
+              If this is a passport renewal, add the new passport on the existing
+              record. If this is a different person, create them anyway.
+            </p>
+            <ul className="mt-3 space-y-2">
+              {errors.duplicateMatches.map((c) => {
+                const current = currentPassport(c.passports);
+                return (
+                  <li key={c.id}>
+                    <Link
+                      to={`/customers/${c.id}`}
+                      className="link-brand text-sm"
+                    >
+                      {c.full_name}
+                      {current?.passport_number
+                        ? ` · ${current.passport_number}`
+                        : ""}
+                      {" →"}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => void saveEntry(true)}
+              className="btn-ghost mt-3"
+            >
+              Create anyway — different person
+            </button>
+          </div>
         ) : null}
 
         {errors.form ? (

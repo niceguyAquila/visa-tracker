@@ -219,18 +219,17 @@ function VisaList({ mode }: VisaListProps) {
     setError(null);
 
     const needsCustomerInner = Boolean(
-      query.trim() ||
-        companyId ||
+      companyId ||
         sortKey === "name" ||
-        sortKey === "passport" ||
         sortKey === "company"
     );
-    const select =
+    const customerSelect =
       sortKey === "company"
-        ? "*, customers!inner ( id, full_name, passport_number, company_id, companies!inner ( id, name ) )"
+        ? "customers!inner ( id, full_name, company_id, companies!inner ( id, name ) )"
         : needsCustomerInner
-          ? "*, customers!inner ( id, full_name, passport_number, company_id, companies ( id, name ) )"
-          : "*, customers ( id, full_name, passport_number, company_id, companies ( id, name ) )";
+          ? "customers!inner ( id, full_name, company_id, companies ( id, name ) )"
+          : "customers ( id, full_name, company_id, companies ( id, name ) )";
+    const select = `*, ${customerSelect}, passports!passport_id ( id, passport_number, passport_expiry )`;
 
     let q = supabase.from("visas").select(select, { count: "exact" });
 
@@ -243,7 +242,7 @@ function VisaList({ mode }: VisaListProps) {
         break;
       case "passport":
         q = q
-          .order("passport_number", { ascending, foreignTable: "customers" })
+          .order("passport_number", { ascending, foreignTable: "passports" })
           .order("id", { ascending: true });
         break;
       case "company":
@@ -297,10 +296,26 @@ function VisaList({ mode }: VisaListProps) {
     const qTrim = query.trim().replace(/[%_,"]/g, "");
     if (qTrim) {
       const pattern = `%${qTrim}%`;
-      q = q.or(
-        `full_name.ilike."${pattern}",passport_number.ilike."${pattern}"`,
-        { foreignTable: "customers" }
-      );
+      const [{ data: nameRows }, { data: passRows }] = await Promise.all([
+        supabase.from("customers").select("id").ilike("full_name", pattern),
+        supabase.from("passports").select("id").ilike("passport_number", pattern),
+      ]);
+      const customerIds = (nameRows ?? []).map((r) => r.id as string);
+      const passportIds = (passRows ?? []).map((r) => r.id as string);
+      if (customerIds.length === 0 && passportIds.length === 0) {
+        setRows([]);
+        setTotalCount(0);
+        setLoading(false);
+        return;
+      }
+      const parts: string[] = [];
+      if (customerIds.length) {
+        parts.push(`customer_id.in.(${customerIds.join(",")})`);
+      }
+      if (passportIds.length) {
+        parts.push(`passport_id.in.(${passportIds.join(",")})`);
+      }
+      q = q.or(parts.join(","));
     }
 
     const from = (safePage - 1) * PAGE_SIZE;
@@ -313,7 +328,7 @@ function VisaList({ mode }: VisaListProps) {
       setRows([]);
       setTotalCount(0);
     } else {
-      setRows((data ?? []) as VisaWithCustomer[]);
+      setRows((data ?? []) as unknown as VisaWithCustomer[]);
       setTotalCount(count ?? 0);
     }
     setLoading(false);
@@ -669,7 +684,7 @@ function VisaList({ mode }: VisaListProps) {
                           {v.customers?.full_name ?? "—"}
                         </td>
                         <td className="whitespace-nowrap border-t border-line/80 px-3 py-2 font-mono text-xs text-ink-soft">
-                          {v.customers?.passport_number ?? "—"}
+                          {v.passports?.passport_number ?? "—"}
                         </td>
                         <td className="max-w-[9rem] truncate border-t border-line/80 px-3 py-2 text-ink-soft">
                           {v.masuk_dari || "—"}
