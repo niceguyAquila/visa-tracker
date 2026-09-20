@@ -91,8 +91,14 @@ function parseExtDone(value: string | null): ExtDoneFilter {
 }
 
 function parseLanded(value: string | null): LandedFilter {
-  if (value === "all" || value === "no") return value;
-  return "yes";
+  if (value === "yes" || value === "no") return value;
+  return "all";
+}
+
+function remainingDaysLabel(days: number): string {
+  if (days < 0) return `${Math.abs(days)}d late`;
+  if (days === 0) return "today";
+  return `${days}d remaining`;
 }
 
 function parseArchiveStatus(value: string | null): ArchiveStatusFilter {
@@ -201,7 +207,7 @@ function VisaList({ mode }: VisaListProps) {
   const title = mode === "active" ? "Visa List — Active" : "Visa List — Archive";
   const description =
     mode === "active"
-      ? "In-Progress visas that have landed. Use Arrival to see visas that are ready but not yet in the country."
+      ? "In-Progress visas, including those that have not landed yet."
       : "Cuti, Blacklist, and Finished visa sessions.";
 
   const filtersActive = Boolean(
@@ -209,7 +215,7 @@ function VisaList({ mode }: VisaListProps) {
       companyId ||
       urgency !== "all" ||
       extDone !== "all" ||
-      (mode === "active" && landed !== "yes") ||
+      (mode === "active" && landed !== "all") ||
       (mode === "archive" && archiveStatus !== "all")
   );
 
@@ -533,13 +539,13 @@ function VisaList({ mode }: VisaListProps) {
                 value={landed}
                 onChange={(e) =>
                   updateParams({
-                    landed: e.target.value === "yes" ? "" : e.target.value,
+                    landed: e.target.value === "all" ? "" : e.target.value,
                   })
                 }
               >
+                <option value="all">All In-Progress</option>
                 <option value="yes">Landed</option>
                 <option value="no">Not landed</option>
-                <option value="all">All In-Progress</option>
               </select>
             </label>
           )}
@@ -711,7 +717,6 @@ function VisaList({ mode }: VisaListProps) {
                     const landedHere = isVisaLanded(v.date_entered);
                     const showExtRelative =
                       mode === "active" &&
-                      landedHere &&
                       !v.extension_done &&
                       extDays !== null;
                     const showLeaveRelative = mode === "active" && landedHere;
@@ -784,11 +789,7 @@ function VisaList({ mode }: VisaListProps) {
                           </span>
                           {showExtRelative && extDays !== null ? (
                             <span className="ml-1 text-xs opacity-80">
-                              ({extDays < 0
-                                ? `${Math.abs(extDays)}d late`
-                                : extDays === 0
-                                  ? "today"
-                                  : `${extDays}d`})
+                              ({remainingDaysLabel(extDays)})
                             </span>
                           ) : null}
                         </td>

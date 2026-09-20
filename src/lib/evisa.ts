@@ -98,9 +98,14 @@ export function snapshotFromPassport(
   return patch;
 }
 
+export function sameTravelDocNo(a: string, b: string): boolean {
+  return a.trim().toLowerCase() === b.trim().toLowerCase();
+}
+
 export function validateEVisaFields(
   value: EVisaFieldsValue,
-  passportId: string
+  passportId: string,
+  passportNumber?: string | null
 ): EVisaFieldErrors {
   const next: EVisaFieldErrors = {};
   if (!passportId) next.passportId = "Select a passport.";
@@ -122,15 +127,43 @@ export function validateEVisaFields(
   }
   if (!value.travelDocNo.trim()) {
     next.travelDocNo = "Travel document number is required.";
+  } else if (
+    passportId &&
+    passportNumber &&
+    !sameTravelDocNo(value.travelDocNo, passportNumber)
+  ) {
+    next.travelDocNo =
+      "Travel doc. no doesn’t match the selected passport.";
+    next.passportId =
+      "Select the passport that matches this travel doc. no.";
   }
   return next;
+}
+
+export type EVisaFileMeta = {
+  file_path: string | null;
+  file_name: string | null;
+  content_type: string | null;
+};
+
+export function passportIdForTravelDoc(
+  passports: Passport[],
+  travelDocNo: string
+): string | null {
+  const key = travelDocNo.trim().toLowerCase();
+  if (!key) return null;
+  return (
+    passports.find((p) => sameTravelDocNo(p.passport_number, travelDocNo))?.id ??
+    null
+  );
 }
 
 export function evisaPayload(
   orgId: string,
   visaId: string,
   passportId: string,
-  value: EVisaFieldsValue
+  value: EVisaFieldsValue,
+  file?: EVisaFileMeta | null
 ) {
   return {
     org_id: orgId,
@@ -150,14 +183,22 @@ export function evisaPayload(
     travel_doc_no: value.travelDocNo.trim(),
     travel_doc_issue: value.travelDocIssue || null,
     travel_doc_expiry: value.travelDocExpiry || null,
+    ...(file
+      ? {
+          file_path: file.file_path,
+          file_name: file.file_name,
+          content_type: file.content_type,
+        }
+      : {}),
   };
 }
 
 export function evisaUpdatePayload(
   passportId: string,
-  value: EVisaFieldsValue
+  value: EVisaFieldsValue,
+  file?: EVisaFileMeta | null
 ) {
-  const payload = evisaPayload("", "", passportId, value);
+  const payload = evisaPayload("", "", passportId, value, file);
   return {
     passport_id: payload.passport_id,
     evisa_number: payload.evisa_number,
@@ -174,6 +215,13 @@ export function evisaUpdatePayload(
     travel_doc_no: payload.travel_doc_no,
     travel_doc_issue: payload.travel_doc_issue,
     travel_doc_expiry: payload.travel_doc_expiry,
+    ...(file
+      ? {
+          file_path: payload.file_path,
+          file_name: payload.file_name,
+          content_type: payload.content_type,
+        }
+      : {}),
   };
 }
 

@@ -102,6 +102,9 @@ export type EVisa = {
   travel_doc_no: string;
   travel_doc_issue: string | null;
   travel_doc_expiry: string | null;
+  file_path: string | null;
+  file_name: string | null;
+  content_type: string | null;
   created_at: string;
 };
 

@@ -29,9 +29,6 @@ export function Login() {
     <div className="flex min-h-dvh flex-col justify-center bg-paper px-4 py-10">
       <div className="mx-auto w-full max-w-lg">
         <BrandMark to="/login" />
-        <p className="mt-2 text-sm text-muted">
-          Track worker visa expiry for your team.
-        </p>
 
         <div className="panel mt-8 p-6">
           <h1 className="page-title">Sign in</h1>

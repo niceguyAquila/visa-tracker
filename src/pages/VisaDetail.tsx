@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { CompanyChip } from "../components/CompanyChip";
 import { daysUntilISODate, formatDisplayDate, formatOptionalDisplayDate } from "../lib/dates";
 import { embedOne, EVISA_EMBED } from "../lib/evisa";
+import { removeEvisaPdf, signedEvisaUrl } from "../lib/evisaPdf";
 import { supabase } from "../lib/supabase";
 import { statusBadgeClass, landedBadgeClass, landedLabel, urgencyClass } from "../lib/ui";
 import { isVisaLanded } from "../lib/visa";
@@ -89,6 +90,10 @@ export function VisaDetail() {
   const [visa, setVisa] = useState<VisaWithCustomer | null>(null);
   const [evisa, setEvisa] = useState<EVisa | null>(null);
   const [evisaOpen, setEvisaOpen] = useState(false);
+  const [pdfOpen, setPdfOpen] = useState(false);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [pdfLoading, setPdfLoading] = useState(false);
+  const [pdfError, setPdfError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [flashSuccess, setFlashSuccess] = useState<string | null>(null);
@@ -127,9 +132,20 @@ export function VisaDetail() {
   }, [load]);
 
   useEffect(() => {
-    if (!evisaOpen) return;
+    if (!evisaOpen) {
+      setPdfOpen(false);
+      setPdfUrl(null);
+      setPdfLoading(false);
+      setPdfError(null);
+      return;
+    }
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setEvisaOpen(false);
+      if (e.key !== "Escape") return;
+      if (pdfOpen) {
+        setPdfOpen(false);
+        return;
+      }
+      setEvisaOpen(false);
     }
     document.addEventListener("keydown", onKey);
     const prev = document.body.style.overflow;
@@ -138,11 +154,27 @@ export function VisaDetail() {
       document.removeEventListener("keydown", onKey);
       document.body.style.overflow = prev;
     };
-  }, [evisaOpen]);
+  }, [evisaOpen, pdfOpen]);
+
+  async function viewEvisaFile() {
+    if (!evisa?.file_path) return;
+    setPdfOpen(true);
+    setPdfError(null);
+    if (pdfUrl) return;
+    setPdfLoading(true);
+    const url = await signedEvisaUrl(evisa.file_path);
+    setPdfLoading(false);
+    if (!url) {
+      setPdfError("Couldn’t load the PDF.");
+      return;
+    }
+    setPdfUrl(url);
+  }
 
   async function removeEvisa() {
     if (!evisa) return;
     if (!confirm("Delete this e-visa record?")) return;
+    await removeEvisaPdf(evisa.file_path);
     const { error: dErr } = await supabase
       .from("e_visas")
       .delete()
@@ -152,12 +184,14 @@ export function VisaDetail() {
       return;
     }
     setEvisa(null);
+    setEvisaOpen(false);
     setFlashSuccess("e-Visa deleted.");
   }
 
   async function removeVisa() {
     if (!id) return;
     if (!confirm("Delete this visa record?")) return;
+    await removeEvisaPdf(evisa?.file_path);
     const { error: dErr } = await supabase.from("visas").delete().eq("id", id);
     if (dErr) {
       setError(dErr.message);
@@ -390,20 +424,30 @@ export function VisaDetail() {
             className="panel flex max-h-[90dvh] w-full max-w-2xl flex-col overflow-hidden rounded-t-xl sm:rounded-lg"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-start justify-between gap-3 border-b border-line p-4">
-              <div>
+            <div className="flex flex-col gap-3 border-b border-line p-4 sm:flex-row sm:items-start sm:justify-between">
+              <div className="min-w-0">
                 <h2 id="evisa-dialog-title" className="text-sm font-semibold text-ink">
                   e-Visa
                 </h2>
                 {evisa ? (
-                  <p className="mt-0.5 font-mono text-sm text-muted">
+                  <p className="mt-0.5 truncate font-mono text-sm text-muted">
                     {evisa.evisa_number}
                   </p>
                 ) : null}
               </div>
-              <div className="flex shrink-0 flex-wrap justify-end gap-2">
+              <div className="flex flex-wrap gap-2 sm:justify-end">
                 {evisa ? (
                   <>
+                    {evisa.file_path ? (
+                      <button
+                        type="button"
+                        className="btn-ghost px-3 py-1.5"
+                        disabled={pdfLoading}
+                        onClick={() => void viewEvisaFile()}
+                      >
+                        {pdfLoading ? "Loading file…" : "View e-visa file"}
+                      </button>
+                    ) : null}
                     <Link
                       to={`/visas/${id}/evisa`}
                       className="btn-ghost px-3 py-1.5"
@@ -524,6 +568,71 @@ export function VisaDetail() {
                 </dl>
               ) : (
                 <p className="text-sm text-muted">No e-visa recorded yet.</p>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {pdfOpen ? (
+        <div
+          className="fixed inset-0 z-[80] flex items-stretch justify-center bg-ink/40 p-0 sm:items-center sm:p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="evisa-file-dialog-title"
+          onClick={() => setPdfOpen(false)}
+        >
+          <div
+            className="panel flex h-full max-h-dvh w-full max-w-4xl flex-col overflow-hidden rounded-none sm:h-[90dvh] sm:rounded-lg"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex flex-col gap-3 border-b border-line p-4 pt-[max(1rem,env(safe-area-inset-top))] sm:flex-row sm:items-start sm:justify-between sm:pt-4">
+              <div className="min-w-0">
+                <h2
+                  id="evisa-file-dialog-title"
+                  className="text-sm font-semibold text-ink"
+                >
+                  e-Visa file
+                </h2>
+                <p className="mt-0.5 truncate text-sm text-muted">
+                  {evisa?.file_name || evisa?.evisa_number}
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2 sm:justify-end">
+                {pdfUrl ? (
+                  <a
+                    href={pdfUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="btn-ghost px-3 py-1.5"
+                  >
+                    Open in new tab
+                  </a>
+                ) : null}
+                <button
+                  type="button"
+                  className="btn-ghost px-3 py-1.5"
+                  onClick={() => setPdfOpen(false)}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+            <div className="min-h-0 flex-1 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+              {pdfLoading ? (
+                <p className="text-sm text-muted" role="status">
+                  Loading file…
+                </p>
+              ) : pdfUrl ? (
+                <iframe
+                  title="e-visa PDF"
+                  src={pdfUrl}
+                  className="h-full min-h-[12rem] w-full rounded-lg border border-line bg-paper"
+                />
+              ) : (
+                <p className="text-sm text-muted">
+                  {pdfError ?? "Couldn’t load the PDF."}
+                </p>
               )}
             </div>
           </div>

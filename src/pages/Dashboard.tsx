@@ -95,7 +95,7 @@ function PassportVisaKpis({
         <KpiCard
           label="Active visas"
           value={kpis.activeVisas}
-          to={kpiPath("/visas/active", { company: companyId })}
+          to={kpiPath("/visas/active", { landed: "yes", company: companyId })}
         />
         <KpiCard
           label="Not landed"

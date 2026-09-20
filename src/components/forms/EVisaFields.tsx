@@ -11,15 +11,22 @@ type EVisaFieldsProps = {
   value: EVisaFieldsValue;
   onChange: (patch: Partial<EVisaFieldsValue>) => void;
   errors?: EVisaFieldErrors;
+  disabled?: boolean;
 };
 
 export function EVisaFields({
   value,
   onChange,
   errors = {},
+  disabled = false,
 }: EVisaFieldsProps) {
   return (
-    <div className="space-y-5">
+    <fieldset
+      disabled={disabled}
+      className={`min-w-0 space-y-5 border-0 p-0 ${
+        disabled ? "opacity-50" : ""
+      }`}
+    >
       <div>
         <p className="meta">e-Visa</p>
         <div className="mt-3 grid gap-4 sm:grid-cols-2">
@@ -196,6 +203,6 @@ export function EVisaFields({
           </label>
         </div>
       </div>
-    </div>
+    </fieldset>
   );
 }
