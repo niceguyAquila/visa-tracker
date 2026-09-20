@@ -1,87 +1,17 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { CompanyChip } from "../components/CompanyChip";
-import { daysUntilISODate, formatDisplayDate, formatOptionalDisplayDate } from "../lib/dates";
+import { VisaTimeline } from "../components/VisaTimeline";
+import { formatDisplayDate, formatOptionalDisplayDate } from "../lib/dates";
 import { embedOne, EVISA_EMBED } from "../lib/evisa";
 import { removeEvisaPdf, signedEvisaUrl } from "../lib/evisaPdf";
 import { supabase } from "../lib/supabase";
-import { statusBadgeClass, landedBadgeClass, landedLabel, urgencyClass } from "../lib/ui";
+import { statusBadgeClass, landedBadgeClass, landedLabel } from "../lib/ui";
 import { isVisaLanded } from "../lib/visa";
 import type { EVisa, VisaWithCustomer } from "../types";
 
 const VISA_SELECT =
   `*, customers ( id, full_name, company_id, companies ( id, name, color ) ), passports!passport_id ( id, passport_number, passport_expiry ), ${EVISA_EMBED}`;
-
-function relativeLabel(
-  days: number,
-  kind: "extension" | "leave"
-): string {
-  if (days < 0) return `Passed ${Math.abs(days)}d ago`;
-  if (days === 0) return "Due today (UTC)";
-  return kind === "extension"
-    ? `${days}d until extension (UTC)`
-    : `${days}d until leave (UTC)`;
-}
-
-type TimelineStepProps = {
-  label: string;
-  date: string | null;
-  days?: number | null;
-  kind?: "extension" | "leave";
-  muted?: boolean;
-  emptyLabel?: string;
-};
-
-function TimelineStep({
-  label,
-  date,
-  days = null,
-  kind = "extension",
-  muted = false,
-  emptyLabel = "—",
-}: TimelineStepProps) {
-  const hasUrgency = date && days !== null;
-  const chipClass = hasUrgency
-    ? urgencyClass(days)
-    : muted
-      ? "bg-paper text-muted"
-      : "bg-ok-soft text-ink";
-
-  return (
-    <div className="min-w-0 flex-1">
-      <p className="meta">
-        {label}
-      </p>
-      <div
-        className={`mt-1.5 inline-flex w-full flex-col rounded-lg px-3 py-2 text-sm ${chipClass}`}
-      >
-        {date ? (
-          <>
-            <span className="font-medium">{formatDisplayDate(date)}</span>
-            {hasUrgency ? (
-              <span className="text-xs opacity-90">
-                {relativeLabel(days, kind)}
-              </span>
-            ) : null}
-          </>
-        ) : (
-          <span className="font-medium">{emptyLabel}</span>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function TimelineConnector() {
-  return (
-    <div
-      className="hidden w-6 shrink-0 self-center sm:block"
-      aria-hidden="true"
-    >
-      <div className="h-px w-full bg-line" />
-    </div>
-  );
-}
 
 export function VisaDetail() {
   const { id } = useParams();
@@ -225,12 +155,6 @@ export function VisaDetail() {
   const listPath =
     visa.status === "In-Progress" ? "/visas/active" : "/visas/archive";
   const landed = isVisaLanded(visa.date_entered);
-  const extDays = visa.date_to_extension
-    ? daysUntilISODate(visa.date_to_extension)
-    : null;
-  const leaveDays = visa.leave_date_reminder
-    ? daysUntilISODate(visa.leave_date_reminder)
-    : null;
 
   return (
     <div className="space-y-6">
@@ -298,52 +222,7 @@ export function VisaDetail() {
         </p>
       ) : null}
 
-      <section className="panel space-y-3 p-4">
-        <div className="flex flex-wrap items-center gap-2">
-          <h2 className="text-sm font-semibold text-ink">Timeline</h2>
-          <span
-            className={`inline-flex rounded-md px-2 py-0.5 text-xs font-medium ${
-              visa.extension_done
-                ? "bg-success-soft text-success-ink"
-                : "bg-ok-soft text-ok-ink"
-            }`}
-          >
-            Extension {visa.extension_done ? "done" : "not done"}
-          </span>
-        </div>
-
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch">
-          <TimelineStep
-            label="Entered"
-            date={visa.date_entered}
-            emptyLabel="Not landed"
-            muted={!visa.date_entered}
-          />
-          <TimelineConnector />
-          <TimelineStep
-            label="Ext. due"
-            date={visa.date_to_extension}
-            days={extDays}
-            kind="extension"
-            emptyLabel="—"
-            muted={!visa.date_to_extension}
-          />
-          <TimelineConnector />
-          <TimelineStep
-            label="Extended"
-            date={visa.date_extended}
-            muted={!visa.date_extended}
-          />
-          <TimelineConnector />
-          <TimelineStep
-            label="Leave"
-            date={visa.leave_date_reminder}
-            days={leaveDays}
-            kind="leave"
-            muted={!visa.leave_date_reminder}
-          />
-        </div>
-      </section>
+      <VisaTimeline visa={visa} />
 
       <section className="panel p-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -399,15 +278,21 @@ export function VisaDetail() {
           </div>
           <div>
             <dt className="meta">
-              Masuk dari
+              Route
             </dt>
-            <dd className="mt-1 text-ink">{visa.masuk_dari || "—"}</dd>
+            <dd className="mt-1 text-ink">{visa.route || "—"}</dd>
           </div>
           <div>
             <dt className="meta">
               Visa days
             </dt>
             <dd className="mt-1 text-ink">{visa.visa_days}</dd>
+          </div>
+          <div>
+            <dt className="meta">Actual leave date</dt>
+            <dd className="mt-1 text-ink">
+              {formatOptionalDisplayDate(visa.actual_leave_date)}
+            </dd>
           </div>
         </dl>
       </section>

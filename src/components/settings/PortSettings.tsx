@@ -118,7 +118,7 @@ export function PortSettings() {
       <div>
         <h2 className="text-lg font-semibold text-ink">Entry ports</h2>
         <p className="page-sub">
-          Options for Masuk dari on visa forms.
+          Options for Route on visa forms.
         </p>
       </div>
 
@@ -161,7 +161,7 @@ export function PortSettings() {
           <p className="mt-2 text-muted">Loading…</p>
         ) : customPorts.length === 0 ? (
           <div className="empty-state mt-2">
-            No custom ports yet. Add one above to show it in Masuk dari.
+            No custom ports yet. Add one above to show it in Route.
           </div>
         ) : (
           <ul className="mt-2 divide-y divide-line rounded-lg border border-line bg-surface">

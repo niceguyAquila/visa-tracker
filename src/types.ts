@@ -68,11 +68,12 @@ export type Visa = {
   date_extended: string | null;
   extension_done: boolean;
   leave_date_reminder: string | null;
+  actual_leave_date: string | null;
   cycle_done: boolean;
   cuti: boolean;
   blacklist: boolean;
   status: VisaStatus;
-  masuk_dari: string;
+  route: string;
   created_at: string;
 };
 

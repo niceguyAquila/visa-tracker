@@ -28,6 +28,8 @@ import {
 } from "../lib/phone";
 import { supabase } from "../lib/supabase";
 import {
+  actualLeaveDateForSave,
+  actualLeaveDateForStatus,
   flagsFromVisaStatus,
   friendlyInProgressConflict,
 } from "../lib/visa";
@@ -69,7 +71,7 @@ const emptyVisa = (): VisaFieldsValue => ({
   dateEntered: "",
   dateExtended: "",
   extensionDone: false,
-  masukDari: "",
+  route: "",
 });
 
 type FieldErrors = {
@@ -99,6 +101,8 @@ export function EntryForm({ defaultMode }: EntryFormProps) {
   const [existingCustomerId, setExistingCustomerId] = useState("");
   const [existingPassportId, setExistingPassportId] = useState("");
   const [visaState, setVisaState] = useState<VisaStatus>("In-Progress");
+  const [actualLeaveDate, setActualLeaveDate] = useState("");
+  const [actualLeaveError, setActualLeaveError] = useState<string | undefined>();
   const [markAsOpen, setMarkAsOpen] = useState(false);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [busy, setBusy] = useState(false);
@@ -168,6 +172,8 @@ export function EntryForm({ defaultMode }: EntryFormProps) {
       if (preselect) setExistingCustomerId(preselect);
 
       setVisaState("In-Progress");
+      setActualLeaveDate("");
+      setActualLeaveError(undefined);
       setMarkAsOpen(false);
       setLoading(false);
     })();
@@ -221,6 +227,8 @@ export function EntryForm({ defaultMode }: EntryFormProps) {
 
   function onVisaStateChange(next: VisaStatus) {
     setVisaState(next);
+    setActualLeaveDate((prev) => actualLeaveDateForStatus(next, prev));
+    setActualLeaveError(undefined);
     if (next !== "In-Progress") setMarkAsOpen(true);
   }
 
@@ -263,9 +271,10 @@ export function EntryForm({ defaultMode }: EntryFormProps) {
       visa.dateEntered !== blank.dateEntered ||
       visa.dateExtended !== blank.dateExtended ||
       visa.extensionDone !== blank.extensionDone ||
-      visa.masukDari.trim() !== blank.masukDari ||
+      visa.route.trim() !== blank.route ||
       visa.visaDays !== blank.visaDays ||
-      visaState !== "In-Progress"
+      visaState !== "In-Progress" ||
+      actualLeaveDate !== ""
     );
   }
 
@@ -322,12 +331,32 @@ export function EntryForm({ defaultMode }: EntryFormProps) {
       }
     }
 
+    if (mode === "personAndVisa" || mode === "visaOnly") {
+      if (visaState === "Finished" && !actualLeaveDate) {
+        setActualLeaveError(
+          "Actual leave date is required when status is Finished."
+        );
+        next.form = "Actual leave date is required when status is Finished.";
+      } else if (
+        visaState === "Finished" &&
+        visa.dateEntered &&
+        actualLeaveDate &&
+        actualLeaveDate < visa.dateEntered
+      ) {
+        setActualLeaveError("Actual leave date cannot be before date entered.");
+        next.form = "Actual leave date cannot be before date entered.";
+      } else {
+        setActualLeaveError(undefined);
+      }
+    }
+
     setErrors(next);
     return (
       !next.person &&
       !next.visa &&
       !next.customerId &&
-      !next.passportId
+      !next.passportId &&
+      !next.form
     );
   }
 
@@ -462,7 +491,8 @@ export function EntryForm({ defaultMode }: EntryFormProps) {
         cycle_done: flags.cycle_done,
         cuti: flags.cuti,
         blacklist: flags.blacklist,
-        masuk_dari: visa.masukDari.trim(),
+        route: visa.route.trim(),
+        actual_leave_date: actualLeaveDateForSave(state, actualLeaveDate),
       })
       .select("id")
       .single();
@@ -696,6 +726,13 @@ export function EntryForm({ defaultMode }: EntryFormProps) {
                         isEdit={false}
                         markAsOpen={markAsOpen}
                         onMarkAsOpenChange={setMarkAsOpen}
+                        actualLeaveDate={actualLeaveDate}
+                        onActualLeaveDateChange={(next) => {
+                          setActualLeaveDate(next);
+                          setActualLeaveError(undefined);
+                        }}
+                        dateEntered={visa.dateEntered}
+                        actualLeaveError={actualLeaveError}
                       />
                     ) : null
                   }

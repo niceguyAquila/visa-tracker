@@ -21,7 +21,7 @@ export type VisaFieldsValue = {
   dateEntered: string;
   dateExtended: string;
   extensionDone: boolean;
-  masukDari: string;
+  route: string;
 };
 
 export type VisaFieldErrors = Partial<Record<"dateEntered" | "visaDays", string>>;
@@ -54,9 +54,9 @@ export function VisaFields({
     if (hasAdvanced) setMoreOpen(true);
   }, [hasAdvanced]);
 
-  const portOptions = mergeEntryPortOptions(customPorts, value.masukDari);
+  const portOptions = mergeEntryPortOptions(customPorts, value.route);
   const selectValue =
-    existingEntryPort(value.masukDari, portOptions) ?? value.masukDari;
+    existingEntryPort(value.route, portOptions) ?? value.route;
 
   const previewDateToExtension = computeDateToExtension(
     value.dateEntered,
@@ -110,10 +110,10 @@ export function VisaFields({
 
       <div>
         <label className="block">
-          <FieldLabel>Masuk dari</FieldLabel>
+          <FieldLabel>Route</FieldLabel>
           <select
             value={selectValue}
-            onChange={(e) => onChange({ masukDari: e.target.value })}
+            onChange={(e) => onChange({ route: e.target.value })}
             className={inputClass}
           >
             <option value="">Select…</option>
@@ -167,7 +167,9 @@ export function VisaFields({
                 : "—"
             }
             hint={
-              !value.dateEntered ? "After date entered is set" : undefined
+              !value.dateEntered
+                ? "After date entered is set"
+                : "Planned leave date"
             }
           />
         </ol>

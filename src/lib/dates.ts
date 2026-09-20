@@ -44,6 +44,11 @@ function utcDateOnly(from = new Date()): Date {
   );
 }
 
+/** YYYY-MM-DD for today in UTC. */
+export function todayUtcISODate(from = new Date()): string {
+  return utcDateOnly(from).toISOString().slice(0, 10);
+}
+
 /** True if the ISO date is before today + `months` (UTC, date-only). */
 export function isBeforeUtcMonths(
   iso: string,

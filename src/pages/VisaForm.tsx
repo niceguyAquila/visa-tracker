@@ -11,6 +11,8 @@ import { VisaStatusFields } from "../components/forms/VisaStatusFields";
 import { CUSTOMER_LIST_SELECT } from "../lib/customer";
 import { getDefaultOrgId } from "../lib/org";
 import {
+  actualLeaveDateForSave,
+  actualLeaveDateForStatus,
   computeVisaStatus,
   flagsFromVisaStatus,
   friendlyInProgressConflict,
@@ -32,9 +34,11 @@ export function VisaForm() {
     dateEntered: "",
     dateExtended: "",
     extensionDone: false,
-    masukDari: "",
+    route: "",
   });
   const [visaState, setVisaState] = useState<VisaStatus>("In-Progress");
+  const [actualLeaveDate, setActualLeaveDate] = useState("");
+  const [actualLeaveError, setActualLeaveError] = useState<string | undefined>();
   const [markAsOpen, setMarkAsOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -109,7 +113,7 @@ export function VisaForm() {
         dateEntered: rowVisa.date_entered ?? "",
         dateExtended: rowVisa.date_extended ?? "",
         extensionDone: rowVisa.extension_done,
-        masukDari: rowVisa.masuk_dari,
+        route: rowVisa.route,
       });
       setVisaState(
         computeVisaStatus({
@@ -118,6 +122,8 @@ export function VisaForm() {
           cuti: rowVisa.cuti,
         })
       );
+      setActualLeaveDate(rowVisa.actual_leave_date ?? "");
+      setActualLeaveError(undefined);
       setLoading(false);
     })();
     return () => {
@@ -138,9 +144,25 @@ export function VisaForm() {
     }
 
     setError(null);
-    setBusy(true);
+    setActualLeaveError(undefined);
 
     const flags = flagsFromVisaStatus(visaState);
+    if (visaState === "Finished" && !actualLeaveDate) {
+      setActualLeaveError("Actual leave date is required when status is Finished.");
+      return;
+    }
+    if (
+      visaState === "Finished" &&
+      visa.dateEntered &&
+      actualLeaveDate &&
+      actualLeaveDate < visa.dateEntered
+    ) {
+      setActualLeaveError("Actual leave date cannot be before date entered.");
+      return;
+    }
+
+    setBusy(true);
+
     const { error: uErr } = await supabase
       .from("visas")
       .update({
@@ -153,7 +175,8 @@ export function VisaForm() {
         cycle_done: flags.cycle_done,
         cuti: flags.cuti,
         blacklist: flags.blacklist,
-        masuk_dari: visa.masukDari.trim(),
+        route: visa.route.trim(),
+        actual_leave_date: actualLeaveDateForSave(visaState, actualLeaveDate),
       })
       .eq("id", id);
 
@@ -213,10 +236,23 @@ export function VisaForm() {
             moreDetailsExtra={
               <VisaStatusFields
                 visaState={visaState}
-                onVisaStateChange={setVisaState}
+                onVisaStateChange={(next) => {
+                  setVisaState(next);
+                  setActualLeaveDate((prev) =>
+                    actualLeaveDateForStatus(next, prev)
+                  );
+                  setActualLeaveError(undefined);
+                }}
                 isEdit
                 markAsOpen={markAsOpen}
                 onMarkAsOpenChange={setMarkAsOpen}
+                actualLeaveDate={actualLeaveDate}
+                onActualLeaveDateChange={(next) => {
+                  setActualLeaveDate(next);
+                  setActualLeaveError(undefined);
+                }}
+                dateEntered={visa.dateEntered}
+                actualLeaveError={actualLeaveError}
               />
             }
           />

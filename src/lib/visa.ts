@@ -1,4 +1,4 @@
-import { parseISODate } from "./dates";
+import { daysUntilISODate, parseISODate, todayUtcISODate } from "./dates";
 import type { VisaDays, VisaStatus } from "../types";
 
 export const VISA_DAYS_OPTIONS: VisaDays[] = ["90 Days", "30 Days"];
@@ -97,6 +97,24 @@ export function flagsFromVisaStatus(status: VisaStatus): {
   };
 }
 
+/** Fill today when first marking Finished; keep an existing value otherwise. */
+export function actualLeaveDateForStatus(
+  status: VisaStatus,
+  current: string
+): string {
+  if (status === "Finished" && !current) return todayUtcISODate();
+  return current;
+}
+
+/** Persist actual leave only for Finished visas. */
+export function actualLeaveDateForSave(
+  status: VisaStatus,
+  actualLeaveDate: string
+): string | null {
+  if (status !== "Finished") return null;
+  return actualLeaveDate || null;
+}
+
 export const VISA_STATE_OPTIONS: VisaStatus[] = [
   "In-Progress",
   "Cuti",
@@ -114,6 +132,52 @@ export function isVisaLanded(
   dateEntered: string | null | undefined
 ): boolean {
   return Boolean(dateEntered);
+}
+
+export type ExtensionTimelineKind =
+  | "left_before_deadline"
+  | "overdue"
+  | "extended"
+  | "pending"
+  | "none";
+
+export type ExtensionTimeline = {
+  kind: ExtensionTimelineKind;
+  label: string;
+};
+
+/** Presentation status for the visa timeline header and Ext. Due node. */
+export function deriveExtensionTimeline(input: {
+  dateToExtension: string | null | undefined;
+  dateExtended: string | null | undefined;
+  extensionDone: boolean;
+  actualLeaveDate: string | null | undefined;
+}): ExtensionTimeline {
+  const due = input.dateToExtension ?? null;
+  const actualLeave = input.actualLeaveDate ?? null;
+  const extended = input.extensionDone || Boolean(input.dateExtended);
+
+  if (actualLeave && due && actualLeave <= due) {
+    return {
+      kind: "left_before_deadline",
+      label: "Left before extension deadline",
+    };
+  }
+
+  const dueDays = due ? daysUntilISODate(due) : null;
+  if (dueDays !== null && dueDays < 0 && !actualLeave && !extended) {
+    return { kind: "overdue", label: "Extension overdue" };
+  }
+
+  if (extended) {
+    return { kind: "extended", label: "Extension done" };
+  }
+
+  if (!due) {
+    return { kind: "none", label: "No extension due" };
+  }
+
+  return { kind: "pending", label: "Extension not done" };
 }
 
 export function friendlyInProgressConflict(message: string): string {

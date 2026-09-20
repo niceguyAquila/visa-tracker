@@ -4,6 +4,7 @@ import {
 } from "../../lib/visa";
 import { statusBadgeClass, statusSegmentActiveClass } from "../../lib/ui";
 import type { VisaStatus } from "../../types";
+import { FieldError, FieldLabel, inputClass, inputErrorClass } from "./formStyles";
 
 function segmentClass(active: boolean, status: VisaStatus): string {
   const base =
@@ -18,8 +19,9 @@ function ArchiveWarning({ status }: { status: VisaStatus }) {
   if (status === "Finished") {
     return (
       <p className="callout-warn px-3 py-2">
-        Moves this visa to Archive. Another In-Progress visa can then be added
-        for this customer.
+        Moves this visa to Archive. Record the actual leave date — customers can
+        leave before the planned leave-by date. Another In-Progress visa can
+        then be added for this customer.
       </p>
     );
   }
@@ -73,7 +75,43 @@ type VisaStatusFieldsProps = {
   isEdit: boolean;
   markAsOpen: boolean;
   onMarkAsOpenChange: (open: boolean) => void;
+  actualLeaveDate: string;
+  onActualLeaveDateChange: (next: string) => void;
+  dateEntered?: string;
+  actualLeaveError?: string;
 };
+
+function ActualLeaveDateField({
+  value,
+  onChange,
+  dateEntered,
+  error,
+}: {
+  value: string;
+  onChange: (next: string) => void;
+  dateEntered?: string;
+  error?: string;
+}) {
+  return (
+    <label className="block">
+      <FieldLabel required>Actual leave date</FieldLabel>
+      <input
+        type="date"
+        required
+        value={value}
+        min={dateEntered || undefined}
+        onChange={(e) => onChange(e.target.value)}
+        className={error ? inputErrorClass : inputClass}
+        aria-invalid={Boolean(error)}
+      />
+      <p className="mt-1 text-xs text-muted">
+        The day they actually left, even if that is earlier than the planned
+        leave-by date.
+      </p>
+      <FieldError message={error} />
+    </label>
+  );
+}
 
 export function VisaStatusFields({
   visaState,
@@ -81,6 +119,10 @@ export function VisaStatusFields({
   isEdit,
   markAsOpen,
   onMarkAsOpenChange,
+  actualLeaveDate,
+  onActualLeaveDateChange,
+  dateEntered,
+  actualLeaveError,
 }: VisaStatusFieldsProps) {
   return (
     <div className="space-y-2">
@@ -101,6 +143,14 @@ export function VisaStatusFields({
             options={VISA_STATE_OPTIONS}
           />
           <ArchiveWarning status={visaState} />
+          {visaState === "Finished" ? (
+            <ActualLeaveDateField
+              value={actualLeaveDate}
+              onChange={onActualLeaveDateChange}
+              dateEntered={dateEntered}
+              error={actualLeaveError}
+            />
+          ) : null}
         </>
       ) : (
         <>
@@ -157,7 +207,17 @@ export function VisaStatusFields({
                   Choose Cuti, Blacklist, or Finished to archive on create.
                 </p>
               ) : (
-                <ArchiveWarning status={visaState} />
+                <>
+                  <ArchiveWarning status={visaState} />
+                  {visaState === "Finished" ? (
+                    <ActualLeaveDateField
+                      value={actualLeaveDate}
+                      onChange={onActualLeaveDateChange}
+                      dateEntered={dateEntered}
+                      error={actualLeaveError}
+                    />
+                  ) : null}
+                </>
               )}
             </div>
           )}

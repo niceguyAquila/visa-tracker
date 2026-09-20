@@ -28,7 +28,7 @@ type SortKey =
   | "status"
   | "name"
   | "passport"
-  | "masuk_dari"
+  | "route"
   | "company"
   | "visa_days"
   | "date_entered"
@@ -36,13 +36,14 @@ type SortKey =
   | "date_extended"
   | "extension_done"
   | "leave_date_reminder"
+  | "actual_leave_date"
   | "cycle_done";
 
 const SORT_KEYS: SortKey[] = [
   "status",
   "name",
   "passport",
-  "masuk_dari",
+  "route",
   "company",
   "visa_days",
   "date_entered",
@@ -50,6 +51,7 @@ const SORT_KEYS: SortKey[] = [
   "date_extended",
   "extension_done",
   "leave_date_reminder",
+  "actual_leave_date",
   "cycle_done",
 ];
 
@@ -123,6 +125,7 @@ function parsePageSize(value: string | null): PageSize {
 }
 
 function parseSort(value: string | null): SortKey {
+  if (value === "masuk_dari") return "route";
   if (value && (SORT_KEYS as string[]).includes(value)) {
     return value as SortKey;
   }
@@ -286,6 +289,7 @@ function VisaList({ mode }: VisaListProps) {
       case "date_to_extension":
       case "date_extended":
       case "leave_date_reminder":
+      case "actual_leave_date":
         q = q
           .order(sortKey, { ascending, nullsFirst: false })
           .order("id", { ascending: true });
@@ -622,7 +626,7 @@ function VisaList({ mode }: VisaListProps) {
         <>
           <div className="flex min-h-0 flex-1 flex-col gap-3">
             <div className="min-h-0 flex-1 overflow-auto rounded-lg border border-line bg-surface">
-            <table className="w-full min-w-[78rem] border-separate border-spacing-0 text-left text-sm">
+            <table className="w-full min-w-[86rem] border-separate border-spacing-0 text-left text-sm">
               <thead className="text-xs">
                 <tr>
                   <th
@@ -652,8 +656,8 @@ function VisaList({ mode }: VisaListProps) {
                     onSort={toggleSort}
                   />
                   <SortHeader
-                    label="Masuk Dari"
-                    sortKey="masuk_dari"
+                    label="Route"
+                    sortKey="route"
                     activeKey={sortKey}
                     dir={sortDir}
                     onSort={toggleSort}
@@ -702,8 +706,15 @@ function VisaList({ mode }: VisaListProps) {
                     align="center"
                   />
                   <SortHeader
-                    label="Leave Date"
+                    label="Leave by"
                     sortKey="leave_date_reminder"
+                    activeKey={sortKey}
+                    dir={sortDir}
+                    onSort={toggleSort}
+                  />
+                  <SortHeader
+                    label="Actual Leave"
+                    sortKey="actual_leave_date"
                     activeKey={sortKey}
                     dir={sortDir}
                     onSort={toggleSort}
@@ -722,7 +733,7 @@ function VisaList({ mode }: VisaListProps) {
                 {loading ? (
                   <tr>
                     <td
-                      colSpan={13}
+                      colSpan={14}
                       className="border-t border-line/80 px-3 py-8 text-center text-muted"
                     >
                       Loading…
@@ -783,7 +794,7 @@ function VisaList({ mode }: VisaListProps) {
                           {v.passports?.passport_number ?? "—"}
                         </td>
                         <td className="max-w-[9rem] truncate border-t border-line/80 px-3 py-2 text-ink-soft">
-                          {v.masuk_dari || "—"}
+                          {v.route || "—"}
                         </td>
                         <td className="max-w-[9rem] truncate border-t border-line/80 px-3 py-2 text-ink-soft">
                           {v.customers?.companies?.name ?? "—"}
@@ -853,6 +864,11 @@ function VisaList({ mode }: VisaListProps) {
                           ) : (
                             "—"
                           )}
+                        </td>
+                        <td className="whitespace-nowrap border-t border-line/80 px-3 py-2 tabular-nums text-ink-soft">
+                          {v.actual_leave_date
+                            ? formatDisplayDate(v.actual_leave_date)
+                            : "—"}
                         </td>
                         <td className="whitespace-nowrap border-t border-line/80 px-3 py-2 text-center text-ink-soft">
                           {v.cycle_done ? "Y" : "—"}

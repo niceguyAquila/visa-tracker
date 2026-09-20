@@ -634,6 +634,9 @@ export function CustomerDetail() {
                           {v.date_to_extension
                             ? ` · Extension ${formatDisplayDate(v.date_to_extension)}`
                             : ""}
+                          {v.actual_leave_date
+                            ? ` · Left ${formatDisplayDate(v.actual_leave_date)}`
+                            : ""}
                         </p>
                       </div>
                       <div className="flex flex-wrap items-center gap-1.5">
