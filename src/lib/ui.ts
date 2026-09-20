@@ -1,3 +1,4 @@
+import type { LeavePhase } from "./visa";
 import type { VisaStatus } from "../types";
 
 export function urgencyClass(days: number): string {
@@ -50,6 +51,12 @@ export function landedBadgeClass(landed: boolean): string {
 
 export function landedLabel(landed: boolean): string {
   return landed ? "Landed" : "Not landed";
+}
+
+export function leavePhaseBadgeClass(phase: LeavePhase): string {
+  if (phase === "left") return "bg-done-soft text-done-ink";
+  if (phase === "confirmed") return "bg-watch-soft text-watch-ink";
+  return "bg-ok-soft text-ok-ink";
 }
 
 export function statusSegmentActiveClass(status: VisaStatus): string {

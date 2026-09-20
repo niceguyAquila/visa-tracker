@@ -1,8 +1,10 @@
 import * as XLSX from "xlsx";
 import { currentPassport, CUSTOMER_LIST_SELECT } from "./customer";
+import { todayISODate } from "./dates";
 import { EVISA_EMBED, embedOne } from "./evisa";
 import { supabase } from "./supabase";
-import { isVisaLanded } from "./visa";
+import { deriveLeavePhase, isVisaLanded, leavePhaseLabel } from "./visa";
+import { finishDueVisas } from "./visaSweep";
 import type { CustomerWithCompany, EVisa, VisaWithCustomer } from "../types";
 
 const PAGE_SIZE = 1000;
@@ -39,13 +41,6 @@ function cell(value: string | number | boolean | null | undefined): string {
   return String(value);
 }
 
-function todayStamp(from = new Date()): string {
-  const y = from.getFullYear();
-  const m = String(from.getMonth() + 1).padStart(2, "0");
-  const d = String(from.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
-}
-
 function sheetFromRows(headers: string[], rows: string[][]): XLSX.WorkSheet {
   const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
   ws["!cols"] = headers.map((h, i) => {
@@ -63,13 +58,15 @@ function fileName(companyName?: string | null): string {
   const scope = companyName
     ? companyName.replace(/[^\w-]+/g, "-").replace(/-+/g, "-")
     : "all-companies";
-  return `visa-report-${scope}-${todayStamp()}.xlsx`;
+  return `visa-report-${scope}-${todayISODate()}.xlsx`;
 }
 
 export async function downloadCustomerVisaReport(
   options: ReportOptions = {}
 ): Promise<void> {
   const companyId = options.companyId || null;
+
+  await finishDueVisas();
 
   const [customers, visas] = await Promise.all([
     fetchAll<CustomerWithCompany>("customers", CUSTOMER_LIST_SELECT, {
@@ -146,7 +143,8 @@ export async function downloadCustomerVisaReport(
     "Date extended",
     "Extension done",
     "Leave by",
-    "Actual leave date",
+    "Leave date",
+    "Leave status",
     "Cycle done",
     "eVISA number",
     "Ref. number",
@@ -198,6 +196,7 @@ export async function downloadCustomerVisaReport(
         cell(v.extension_done),
         cell(v.leave_date_reminder),
         cell(v.actual_leave_date),
+        cell(leavePhaseLabel(deriveLeavePhase(v.actual_leave_date))),
         cell(v.cycle_done),
         cell(evisa?.evisa_number),
         cell(evisa?.ref_number),

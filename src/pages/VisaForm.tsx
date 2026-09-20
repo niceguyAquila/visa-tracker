@@ -5,6 +5,7 @@ import { PersonPicker } from "../components/forms/PersonPicker";
 import { FormSection, SectionHeading } from "../components/forms/formStyles";
 import {
   VisaFields,
+  type VisaFieldErrors,
   type VisaFieldsValue,
 } from "../components/forms/VisaFields";
 import { VisaStatusFields } from "../components/forms/VisaStatusFields";
@@ -16,6 +17,7 @@ import {
   computeVisaStatus,
   flagsFromVisaStatus,
   friendlyInProgressConflict,
+  validateLeaveDate,
 } from "../lib/visa";
 import { supabase } from "../lib/supabase";
 import type { CustomerWithCompany, Visa, VisaStatus } from "../types";
@@ -35,10 +37,10 @@ export function VisaForm() {
     dateExtended: "",
     extensionDone: false,
     route: "",
+    actualLeaveDate: "",
   });
   const [visaState, setVisaState] = useState<VisaStatus>("In-Progress");
-  const [actualLeaveDate, setActualLeaveDate] = useState("");
-  const [actualLeaveError, setActualLeaveError] = useState<string | undefined>();
+  const [visaErrors, setVisaErrors] = useState<VisaFieldErrors>({});
   const [markAsOpen, setMarkAsOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -114,6 +116,7 @@ export function VisaForm() {
         dateExtended: rowVisa.date_extended ?? "",
         extensionDone: rowVisa.extension_done,
         route: rowVisa.route,
+        actualLeaveDate: rowVisa.actual_leave_date ?? "",
       });
       setVisaState(
         computeVisaStatus({
@@ -122,8 +125,7 @@ export function VisaForm() {
           cuti: rowVisa.cuti,
         })
       );
-      setActualLeaveDate(rowVisa.actual_leave_date ?? "");
-      setActualLeaveError(undefined);
+      setVisaErrors({});
       setLoading(false);
     })();
     return () => {
@@ -144,23 +146,16 @@ export function VisaForm() {
     }
 
     setError(null);
-    setActualLeaveError(undefined);
+
+    const leaveError = validateLeaveDate({
+      status: visaState,
+      actualLeaveDate: visa.actualLeaveDate,
+      dateEntered: visa.dateEntered,
+    });
+    setVisaErrors(leaveError ? { actualLeaveDate: leaveError } : {});
+    if (leaveError) return;
 
     const flags = flagsFromVisaStatus(visaState);
-    if (visaState === "Finished" && !actualLeaveDate) {
-      setActualLeaveError("Actual leave date is required when status is Finished.");
-      return;
-    }
-    if (
-      visaState === "Finished" &&
-      visa.dateEntered &&
-      actualLeaveDate &&
-      actualLeaveDate < visa.dateEntered
-    ) {
-      setActualLeaveError("Actual leave date cannot be before date entered.");
-      return;
-    }
-
     setBusy(true);
 
     const { error: uErr } = await supabase
@@ -176,7 +171,7 @@ export function VisaForm() {
         cuti: flags.cuti,
         blacklist: flags.blacklist,
         route: visa.route.trim(),
-        actual_leave_date: actualLeaveDateForSave(visaState, actualLeaveDate),
+        actual_leave_date: actualLeaveDateForSave(visa.actualLeaveDate),
       })
       .eq("id", id);
 
@@ -229,30 +224,32 @@ export function VisaForm() {
           <SectionHeading step={2} title="Visa" />
           <VisaFields
             value={visa}
-            onChange={(patch) => setVisa((prev) => ({ ...prev, ...patch }))}
+            onChange={(patch) => {
+              setVisa((prev) => ({ ...prev, ...patch }));
+              setVisaErrors({});
+            }}
             required
+            errors={visaErrors}
             customPorts={customPorts}
             defaultMoreOpen
+            leaveDateRequired={visaState === "Finished"}
             moreDetailsExtra={
               <VisaStatusFields
                 visaState={visaState}
                 onVisaStateChange={(next) => {
                   setVisaState(next);
-                  setActualLeaveDate((prev) =>
-                    actualLeaveDateForStatus(next, prev)
-                  );
-                  setActualLeaveError(undefined);
+                  setVisa((prev) => ({
+                    ...prev,
+                    actualLeaveDate: actualLeaveDateForStatus(
+                      next,
+                      prev.actualLeaveDate
+                    ),
+                  }));
+                  setVisaErrors({});
                 }}
                 isEdit
                 markAsOpen={markAsOpen}
                 onMarkAsOpenChange={setMarkAsOpen}
-                actualLeaveDate={actualLeaveDate}
-                onActualLeaveDateChange={(next) => {
-                  setActualLeaveDate(next);
-                  setActualLeaveError(undefined);
-                }}
-                dateEntered={visa.dateEntered}
-                actualLeaveError={actualLeaveError}
               />
             }
           />

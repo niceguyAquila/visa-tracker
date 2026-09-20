@@ -32,6 +32,7 @@ import {
   actualLeaveDateForStatus,
   flagsFromVisaStatus,
   friendlyInProgressConflict,
+  validateLeaveDate,
 } from "../lib/visa";
 import type { Company, CustomerWithCompany, VisaStatus } from "../types";
 
@@ -72,6 +73,7 @@ const emptyVisa = (): VisaFieldsValue => ({
   dateExtended: "",
   extensionDone: false,
   route: "",
+  actualLeaveDate: "",
 });
 
 type FieldErrors = {
@@ -101,8 +103,6 @@ export function EntryForm({ defaultMode }: EntryFormProps) {
   const [existingCustomerId, setExistingCustomerId] = useState("");
   const [existingPassportId, setExistingPassportId] = useState("");
   const [visaState, setVisaState] = useState<VisaStatus>("In-Progress");
-  const [actualLeaveDate, setActualLeaveDate] = useState("");
-  const [actualLeaveError, setActualLeaveError] = useState<string | undefined>();
   const [markAsOpen, setMarkAsOpen] = useState(false);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [busy, setBusy] = useState(false);
@@ -172,8 +172,6 @@ export function EntryForm({ defaultMode }: EntryFormProps) {
       if (preselect) setExistingCustomerId(preselect);
 
       setVisaState("In-Progress");
-      setActualLeaveDate("");
-      setActualLeaveError(undefined);
       setMarkAsOpen(false);
       setLoading(false);
     })();
@@ -227,8 +225,9 @@ export function EntryForm({ defaultMode }: EntryFormProps) {
 
   function onVisaStateChange(next: VisaStatus) {
     setVisaState(next);
-    setActualLeaveDate((prev) => actualLeaveDateForStatus(next, prev));
-    setActualLeaveError(undefined);
+    patchVisa({
+      actualLeaveDate: actualLeaveDateForStatus(next, visa.actualLeaveDate),
+    });
     if (next !== "In-Progress") setMarkAsOpen(true);
   }
 
@@ -273,8 +272,8 @@ export function EntryForm({ defaultMode }: EntryFormProps) {
       visa.extensionDone !== blank.extensionDone ||
       visa.route.trim() !== blank.route ||
       visa.visaDays !== blank.visaDays ||
-      visaState !== "In-Progress" ||
-      actualLeaveDate !== ""
+      visa.actualLeaveDate !== blank.actualLeaveDate ||
+      visaState !== "In-Progress"
     );
   }
 
@@ -332,21 +331,13 @@ export function EntryForm({ defaultMode }: EntryFormProps) {
     }
 
     if (mode === "personAndVisa" || mode === "visaOnly") {
-      if (visaState === "Finished" && !actualLeaveDate) {
-        setActualLeaveError(
-          "Actual leave date is required when status is Finished."
-        );
-        next.form = "Actual leave date is required when status is Finished.";
-      } else if (
-        visaState === "Finished" &&
-        visa.dateEntered &&
-        actualLeaveDate &&
-        actualLeaveDate < visa.dateEntered
-      ) {
-        setActualLeaveError("Actual leave date cannot be before date entered.");
-        next.form = "Actual leave date cannot be before date entered.";
-      } else {
-        setActualLeaveError(undefined);
+      const leaveError = validateLeaveDate({
+        status: visaState,
+        actualLeaveDate: visa.actualLeaveDate,
+        dateEntered: visa.dateEntered,
+      });
+      if (leaveError) {
+        next.visa = { ...next.visa, actualLeaveDate: leaveError };
       }
     }
 
@@ -355,8 +346,7 @@ export function EntryForm({ defaultMode }: EntryFormProps) {
       !next.person &&
       !next.visa &&
       !next.customerId &&
-      !next.passportId &&
-      !next.form
+      !next.passportId
     );
   }
 
@@ -492,7 +482,7 @@ export function EntryForm({ defaultMode }: EntryFormProps) {
         cuti: flags.cuti,
         blacklist: flags.blacklist,
         route: visa.route.trim(),
-        actual_leave_date: actualLeaveDateForSave(state, actualLeaveDate),
+        actual_leave_date: actualLeaveDateForSave(visa.actualLeaveDate),
       })
       .select("id")
       .single();
@@ -718,6 +708,7 @@ export function EntryForm({ defaultMode }: EntryFormProps) {
                   errors={errors.visa}
                   customPorts={customPorts}
                   defaultMoreOpen={showStatus && (markAsOpen || visaState !== "In-Progress")}
+                  leaveDateRequired={showStatus && visaState === "Finished"}
                   moreDetailsExtra={
                     showStatus ? (
                       <VisaStatusFields
@@ -726,13 +717,6 @@ export function EntryForm({ defaultMode }: EntryFormProps) {
                         isEdit={false}
                         markAsOpen={markAsOpen}
                         onMarkAsOpenChange={setMarkAsOpen}
-                        actualLeaveDate={actualLeaveDate}
-                        onActualLeaveDateChange={(next) => {
-                          setActualLeaveDate(next);
-                          setActualLeaveError(undefined);
-                        }}
-                        dateEntered={visa.dateEntered}
-                        actualLeaveError={actualLeaveError}
                       />
                     ) : null
                   }

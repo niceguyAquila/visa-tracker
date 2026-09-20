@@ -9,7 +9,7 @@ import {
   unresolvedDuplicateGroups,
 } from "../lib/customer";
 import { supabase } from "../lib/supabase";
-import { daysUntilISODate, formatDisplayDate, isBeforeUtcMonths } from "../lib/dates";
+import { daysUntilISODate, formatDisplayDate, isBeforeMonths } from "../lib/dates";
 import { urgencyClass } from "../lib/ui";
 import type { CustomerWithCompany, DuplicateExclusion } from "../types";
 
@@ -58,7 +58,7 @@ function matchesExpiry(
     case "expired":
       return days < 0;
     case "7m":
-      return isBeforeUtcMonths(expiryDate, 7);
+      return isBeforeMonths(expiryDate, 7);
     case "10":
       return days >= 0 && days <= 10;
     case "30":
@@ -350,8 +350,8 @@ export function CustomersPage() {
                                 {d < 0
                                   ? `Expired ${Math.abs(d)}d ago`
                                   : d === 0
-                                    ? "Expires today (UTC)"
-                                    : `${d}d until expiry (UTC)`}
+                                    ? "Expires today"
+                                    : `${d}d until expiry`}
                               </span>
                             </div>
                           ) : (

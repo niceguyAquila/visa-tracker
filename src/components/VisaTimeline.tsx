@@ -1,6 +1,11 @@
 import type { SVGProps } from "react";
 import { daysUntilISODate, formatDisplayDate } from "../lib/dates";
-import { deriveExtensionTimeline } from "../lib/visa";
+import { leavePhaseBadgeClass } from "../lib/ui";
+import {
+  deriveExtensionTimeline,
+  deriveLeavePhase,
+  leavePhaseLabel,
+} from "../lib/visa";
 import type { VisaStatus } from "../types";
 
 export type VisaTimelineValue = {
@@ -32,8 +37,8 @@ type TimelineNode = {
 
 function remainingDaysLabel(days: number): string {
   if (days < 0) return `Passed ${Math.abs(days)}d ago`;
-  if (days === 0) return "Due today (UTC)";
-  return `${days}d remaining (UTC)`;
+  if (days === 0) return "Due today";
+  return `${days}d remaining`;
 }
 
 function buildNodes(visa: VisaTimelineValue): TimelineNode[] {
@@ -43,7 +48,8 @@ function buildNodes(visa: VisaTimelineValue): TimelineNode[] {
     extensionDone: visa.extension_done,
     actualLeaveDate: visa.actual_leave_date,
   });
-  const left = Boolean(visa.actual_leave_date);
+  const leavePhase = deriveLeavePhase(visa.actual_leave_date);
+  const left = leavePhase === "left";
   const extended = visa.extension_done || Boolean(visa.date_extended);
   const extDays = visa.date_to_extension
     ? daysUntilISODate(visa.date_to_extension)
@@ -141,12 +147,20 @@ function buildNodes(visa: VisaTimelineValue): TimelineNode[] {
       };
 
   let actualLeave: TimelineNode;
-  if (visa.actual_leave_date) {
+  if (visa.actual_leave_date && leavePhase === "left") {
     actualLeave = {
       id: "actual-leave",
       label: "Actual leave",
       value: formatDisplayDate(visa.actual_leave_date),
       appearance: "done",
+    };
+  } else if (visa.actual_leave_date) {
+    actualLeave = {
+      id: "actual-leave",
+      label: "Actual leave",
+      value: formatDisplayDate(visa.actual_leave_date),
+      hint: "Confirmed, not yet left",
+      appearance: "deadline",
     };
   } else if (visa.status === "Finished") {
     actualLeave = {
@@ -218,6 +232,29 @@ function appearanceStatus(appearance: NodeAppearance): string {
     case "pending":
       return "Not yet";
   }
+}
+
+function DepartureIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true" {...props}>
+      <path d="M4 12h13M12.5 7l5 5-5 5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M20 5v14" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function LeaveBadge({ visa }: { visa: VisaTimelineValue }) {
+  const phase = deriveLeavePhase(visa.actual_leave_date);
+  if (phase !== "confirmed") return null;
+
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium ${leavePhaseBadgeClass(phase)}`}
+    >
+      <DepartureIcon className="size-3.5" />
+      {leavePhaseLabel(phase)}
+    </span>
+  );
 }
 
 function NodeCircle({ appearance }: { appearance: NodeAppearance }) {
@@ -358,6 +395,7 @@ export function VisaTimeline({ visa }: { visa: VisaTimelineValue }) {
     <section className="panel space-y-3 p-4">
       <div className="flex flex-wrap items-center gap-2">
         <h2 className="text-sm font-semibold text-ink">Timeline</h2>
+        <LeaveBadge visa={visa} />
         <HeaderBadge visa={visa} />
       </div>
       <ol className="md:flex md:items-start" aria-label="Visa date timeline">

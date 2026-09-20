@@ -17,7 +17,8 @@ import { evisaNumberOf } from "../lib/evisa";
 import { supabase } from "../lib/supabase";
 import { daysUntilISODate, formatDisplayDate } from "../lib/dates";
 import { statusBadgeClass, landedBadgeClass, landedLabel, urgencyClass } from "../lib/ui";
-import { isVisaLanded } from "../lib/visa";
+import { deriveLeavePhase, isVisaLanded } from "../lib/visa";
+import { finishDueVisas } from "../lib/visaSweep";
 import type { CustomerWithCompany, EVisa, Passport, Visa } from "../types";
 
 type CustomerVisaRow = Visa & {
@@ -72,6 +73,7 @@ export function CustomerDetail() {
     if (!id) return;
     setLoading(true);
     setError(null);
+    await finishDueVisas();
     const { data, error: qErr } = await supabase
       .from("customers")
       .select(CUSTOMER_LIST_SELECT)
@@ -337,8 +339,8 @@ export function CustomerDetail() {
                     {days < 0
                       ? `Expired ${Math.abs(days)}d ago`
                       : days === 0
-                        ? "Expires today (UTC)"
-                        : `${days}d until expiry (UTC)`}
+                        ? "Expires today"
+                        : `${days}d until expiry`}
                   </span>
                 </span>
               ) : (
@@ -635,7 +637,11 @@ export function CustomerDetail() {
                             ? ` · Extension ${formatDisplayDate(v.date_to_extension)}`
                             : ""}
                           {v.actual_leave_date
-                            ? ` · Left ${formatDisplayDate(v.actual_leave_date)}`
+                            ? ` · ${
+                                deriveLeavePhase(v.actual_leave_date) === "left"
+                                  ? "Left"
+                                  : "Leaving"
+                              } ${formatDisplayDate(v.actual_leave_date)}`
                             : ""}
                         </p>
                       </div>

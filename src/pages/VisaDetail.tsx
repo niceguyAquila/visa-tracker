@@ -6,8 +6,14 @@ import { formatDisplayDate, formatOptionalDisplayDate } from "../lib/dates";
 import { embedOne, EVISA_EMBED } from "../lib/evisa";
 import { removeEvisaPdf, signedEvisaUrl } from "../lib/evisaPdf";
 import { supabase } from "../lib/supabase";
-import { statusBadgeClass, landedBadgeClass, landedLabel } from "../lib/ui";
-import { isVisaLanded } from "../lib/visa";
+import {
+  statusBadgeClass,
+  landedBadgeClass,
+  landedLabel,
+  leavePhaseBadgeClass,
+} from "../lib/ui";
+import { deriveLeavePhase, isVisaLanded, leavePhaseLabel } from "../lib/visa";
+import { finishDueVisas } from "../lib/visaSweep";
 import type { EVisa, VisaWithCustomer } from "../types";
 
 const VISA_SELECT =
@@ -40,6 +46,7 @@ export function VisaDetail() {
     if (!id) return;
     setLoading(true);
     setError(null);
+    await finishDueVisas();
     const { data, error: qErr } = await supabase
       .from("visas")
       .select(VISA_SELECT)
@@ -155,6 +162,7 @@ export function VisaDetail() {
   const listPath =
     visa.status === "In-Progress" ? "/visas/active" : "/visas/archive";
   const landed = isVisaLanded(visa.date_entered);
+  const leavePhase = deriveLeavePhase(visa.actual_leave_date);
 
   return (
     <div className="space-y-6">
@@ -206,6 +214,13 @@ export function VisaDetail() {
                 className={`inline-flex rounded-md px-2.5 py-1 text-xs font-medium ${landedBadgeClass(landed)}`}
               >
                 {landedLabel(landed)}
+              </span>
+            ) : null}
+            {leavePhase === "confirmed" ? (
+              <span
+                className={`inline-flex rounded-md px-2.5 py-1 text-xs font-medium ${leavePhaseBadgeClass(leavePhase)}`}
+              >
+                {leavePhaseLabel(leavePhase)}
               </span>
             ) : null}
           </div>
@@ -289,9 +304,14 @@ export function VisaDetail() {
             <dd className="mt-1 text-ink">{visa.visa_days}</dd>
           </div>
           <div>
-            <dt className="meta">Actual leave date</dt>
+            <dt className="meta">Leave date</dt>
             <dd className="mt-1 text-ink">
               {formatOptionalDisplayDate(visa.actual_leave_date)}
+              {leavePhase !== "none" ? (
+                <span className="ml-2 text-sm text-muted">
+                  {leavePhaseLabel(leavePhase)}
+                </span>
+              ) : null}
             </dd>
           </div>
         </dl>

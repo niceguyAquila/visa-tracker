@@ -14,6 +14,7 @@ import {
 import { currentPassport, CUSTOMER_LIST_SELECT } from "../lib/customer";
 import { supabase } from "../lib/supabase";
 import { kpiToneClass, urgencyClass } from "../lib/ui";
+import { finishDueVisas } from "../lib/visaSweep";
 import type { Company, CustomerWithCompany, VisaStatus } from "../types";
 
 function parseISODateNum(s: string): number {
@@ -174,6 +175,7 @@ export function Dashboard() {
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
+    await finishDueVisas();
 
     const [coRes, cuRes, visaRes] = await Promise.all([
       supabase.from("companies").select("*").order("name", { ascending: true }),
@@ -380,8 +382,8 @@ export function Dashboard() {
                                   {d < 0
                                     ? `Expired ${Math.abs(d)}d ago`
                                     : d === 0
-                                      ? "Expires today (UTC)"
-                                      : `${d}d until expiry (UTC)`}
+                                      ? "Expires today"
+                                      : `${d}d until expiry`}
                                 </span>
                               </div>
                             ) : (

@@ -1,15 +1,27 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { AddFab } from "../components/AddFab";
-import { daysUntilISODate, formatDisplayDate, formatOptionalDisplayDate } from "../lib/dates";
+import {
+  daysUntilISODate,
+  formatDisplayDate,
+  formatOptionalDisplayDate,
+  todayISODate,
+} from "../lib/dates";
 import {
   landedBadgeClass,
   landedLabel,
+  leavePhaseBadgeClass,
   statusBadgeClass,
   statusRowClass,
   urgencyCellClass,
 } from "../lib/ui";
-import { ARCHIVE_STATUSES, isVisaLanded } from "../lib/visa";
+import {
+  ARCHIVE_STATUSES,
+  deriveLeavePhase,
+  isVisaLanded,
+  leavePhaseLabel,
+} from "../lib/visa";
+import { finishDueVisas } from "../lib/visaSweep";
 import { supabase } from "../lib/supabase";
 import type { Company, VisaWithCustomer } from "../types";
 
@@ -57,15 +69,6 @@ const SORT_KEYS: SortKey[] = [
 
 const DEFAULT_SORT: SortKey = "date_to_extension";
 const DEFAULT_DIR = "asc" as const;
-
-function todayISO(): string {
-  const now = new Date();
-  return new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
-  )
-    .toISOString()
-    .slice(0, 10);
-}
 
 function addDaysISO(iso: string, days: number): string {
   const [y, m, d] = iso.split("-").map(Number);
@@ -321,6 +324,7 @@ function VisaList({ mode }: VisaListProps) {
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
+    await finishDueVisas();
 
     const needsCustomerInner = Boolean(
       companyId ||
@@ -375,7 +379,7 @@ function VisaList({ mode }: VisaListProps) {
       if (landed === "no") q = q.is("date_entered", null);
     }
 
-    const today = todayISO();
+    const today = todayISODate();
     if (landed !== "no") {
       if (urgency === "expired") {
         q = q.lt("date_to_extension", today);
@@ -773,7 +777,7 @@ function VisaList({ mode }: VisaListProps) {
                     onSort={toggleSort}
                   />
                   <SortHeader
-                    label="Actual Leave"
+                    label="Leave Date"
                     sortKey="actual_leave_date"
                     activeKey={sortKey}
                     dir={sortDir}
@@ -809,6 +813,7 @@ function VisaList({ mode }: VisaListProps) {
                       ? daysUntilISODate(v.leave_date_reminder)
                       : null;
                     const landedHere = isVisaLanded(v.date_entered);
+                    const leavePhase = deriveLeavePhase(v.actual_leave_date);
                     const showExtRelative =
                       mode === "active" &&
                       !v.extension_done &&
@@ -843,6 +848,13 @@ function VisaList({ mode }: VisaListProps) {
                                 className={`inline-flex rounded-md px-1.5 py-0.5 text-xs font-medium ${landedBadgeClass(landedHere)}`}
                               >
                                 {landedLabel(landedHere)}
+                              </span>
+                            ) : null}
+                            {leavePhase === "confirmed" ? (
+                              <span
+                                className={`inline-flex rounded-md px-1.5 py-0.5 text-xs font-medium ${leavePhaseBadgeClass(leavePhase)}`}
+                              >
+                                {leavePhaseLabel(leavePhase)}
                               </span>
                             ) : null}
                           </div>
@@ -926,9 +938,20 @@ function VisaList({ mode }: VisaListProps) {
                           )}
                         </td>
                         <td className="whitespace-nowrap border-t border-line/80 px-3 py-2 tabular-nums text-ink-soft">
-                          {v.actual_leave_date
-                            ? formatDisplayDate(v.actual_leave_date)
-                            : "—"}
+                          {v.actual_leave_date ? (
+                            <>
+                              <span>
+                                {formatDisplayDate(v.actual_leave_date)}
+                              </span>
+                              {leavePhase === "confirmed" ? (
+                                <span className="ml-1 text-xs text-muted">
+                                  (confirmed)
+                                </span>
+                              ) : null}
+                            </>
+                          ) : (
+                            "—"
+                          )}
                         </td>
                         <td className="whitespace-nowrap border-t border-line/80 px-3 py-2 text-center text-ink-soft">
                           {v.cycle_done ? "Y" : "—"}

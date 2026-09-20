@@ -1,5 +1,5 @@
 import { currentPassport } from "./customer";
-import { daysUntilISODate, isBeforeUtcMonths } from "./dates";
+import { daysUntilISODate, isBeforeMonths } from "./dates";
 import type { Company, CustomerWithCompany, Passport, VisaStatus } from "../types";
 
 export type Kpis = {
@@ -66,7 +66,7 @@ export function visasForCompany(
 function addPassportKpis(kpis: Kpis, customers: CustomerForMetrics[]) {
   for (const c of customers) {
     const current = currentPassport(c.passports);
-    if (current && isBeforeUtcMonths(current.passport_expiry, 7)) {
+    if (current && isBeforeMonths(current.passport_expiry, 7)) {
       kpis.expired += 1;
     }
     kpis.visas += c.visa_count;

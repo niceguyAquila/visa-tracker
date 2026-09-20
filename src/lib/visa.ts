@@ -1,4 +1,4 @@
-import { daysUntilISODate, parseISODate, todayUtcISODate } from "./dates";
+import { daysUntilISODate, parseISODate, todayISODate } from "./dates";
 import type { VisaDays, VisaStatus } from "../types";
 
 export const VISA_DAYS_OPTIONS: VisaDays[] = ["90 Days", "30 Days"];
@@ -102,16 +102,11 @@ export function actualLeaveDateForStatus(
   status: VisaStatus,
   current: string
 ): string {
-  if (status === "Finished" && !current) return todayUtcISODate();
+  if (status === "Finished" && !current) return todayISODate();
   return current;
 }
 
-/** Persist actual leave only for Finished visas. */
-export function actualLeaveDateForSave(
-  status: VisaStatus,
-  actualLeaveDate: string
-): string | null {
-  if (status !== "Finished") return null;
+export function actualLeaveDateForSave(actualLeaveDate: string): string | null {
   return actualLeaveDate || null;
 }
 
@@ -134,6 +129,56 @@ export function isVisaLanded(
   return Boolean(dateEntered);
 }
 
+/** "confirmed" while the recorded leave date is still in the future. */
+export type LeavePhase = "none" | "confirmed" | "left";
+
+export function deriveLeavePhase(
+  actualLeaveDate: string | null | undefined,
+  from = new Date()
+): LeavePhase {
+  if (!actualLeaveDate) return "none";
+  return daysUntilISODate(actualLeaveDate, from) > 0 ? "confirmed" : "left";
+}
+
+export function leavePhaseLabel(phase: LeavePhase): string {
+  switch (phase) {
+    case "left":
+      return "Left";
+    case "confirmed":
+      return "Confirmed to leave";
+    case "none":
+      return "Not left yet";
+  }
+}
+
+export function validateLeaveDate(
+  input: {
+    status: VisaStatus;
+    actualLeaveDate: string;
+    dateEntered: string;
+  },
+  from = new Date()
+): string | undefined {
+  if (input.status === "Finished" && !input.actualLeaveDate) {
+    return "Leave date is required when status is Finished.";
+  }
+  if (
+    input.actualLeaveDate &&
+    input.dateEntered &&
+    input.actualLeaveDate < input.dateEntered
+  ) {
+    return "Leave date cannot be before date entered.";
+  }
+  // Past dates are swept to Finished, so In-Progress would not survive the save.
+  if (
+    input.status === "In-Progress" &&
+    deriveLeavePhase(input.actualLeaveDate, from) === "left"
+  ) {
+    return "Past leave dates finish the visa. Pick a future date, or mark it Finished.";
+  }
+  return undefined;
+}
+
 export type ExtensionTimelineKind =
   | "left_before_deadline"
   | "overdue"
@@ -147,25 +192,30 @@ export type ExtensionTimeline = {
 };
 
 /** Presentation status for the visa timeline header and Ext. Due node. */
-export function deriveExtensionTimeline(input: {
-  dateToExtension: string | null | undefined;
-  dateExtended: string | null | undefined;
-  extensionDone: boolean;
-  actualLeaveDate: string | null | undefined;
-}): ExtensionTimeline {
+export function deriveExtensionTimeline(
+  input: {
+    dateToExtension: string | null | undefined;
+    dateExtended: string | null | undefined;
+    extensionDone: boolean;
+    actualLeaveDate: string | null | undefined;
+  },
+  from = new Date()
+): ExtensionTimeline {
   const due = input.dateToExtension ?? null;
   const actualLeave = input.actualLeaveDate ?? null;
   const extended = input.extensionDone || Boolean(input.dateExtended);
+  // A future leave date is only a plan, so it cannot resolve the extension yet.
+  const hasLeft = deriveLeavePhase(actualLeave, from) === "left";
 
-  if (actualLeave && due && actualLeave <= due) {
+  if (hasLeft && actualLeave && due && actualLeave <= due) {
     return {
       kind: "left_before_deadline",
       label: "Left before extension deadline",
     };
   }
 
-  const dueDays = due ? daysUntilISODate(due) : null;
-  if (dueDays !== null && dueDays < 0 && !actualLeave && !extended) {
+  const dueDays = due ? daysUntilISODate(due, from) : null;
+  if (dueDays !== null && dueDays < 0 && !hasLeft && !extended) {
     return { kind: "overdue", label: "Extension overdue" };
   }
 

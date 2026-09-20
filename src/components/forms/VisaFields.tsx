@@ -4,6 +4,7 @@ import { formatDisplayDate } from "../../lib/dates";
 import {
   computeDateToExtension,
   computeLeaveDateReminder,
+  deriveLeavePhase,
   existingEntryPort,
   mergeEntryPortOptions,
   VISA_DAYS_OPTIONS,
@@ -22,9 +23,12 @@ export type VisaFieldsValue = {
   dateExtended: string;
   extensionDone: boolean;
   route: string;
+  actualLeaveDate: string;
 };
 
-export type VisaFieldErrors = Partial<Record<"dateEntered" | "visaDays", string>>;
+export type VisaFieldErrors = Partial<
+  Record<"dateEntered" | "visaDays" | "actualLeaveDate", string>
+>;
 
 type VisaFieldsProps = {
   value: VisaFieldsValue;
@@ -35,6 +39,8 @@ type VisaFieldsProps = {
   moreDetailsExtra?: ReactNode;
   defaultMoreOpen?: boolean;
   customPorts?: string[];
+  /** Finished visas must record the day the customer left. */
+  leaveDateRequired?: boolean;
 };
 
 export function VisaFields({
@@ -45,9 +51,13 @@ export function VisaFields({
   moreDetailsExtra,
   defaultMoreOpen = false,
   customPorts = [],
+  leaveDateRequired = false,
 }: VisaFieldsProps) {
   const hasAdvanced =
-    Boolean(value.dateExtended) || value.extensionDone || defaultMoreOpen;
+    Boolean(value.dateExtended) ||
+    value.extensionDone ||
+    Boolean(value.actualLeaveDate) ||
+    defaultMoreOpen;
   const [moreOpen, setMoreOpen] = useState(hasAdvanced);
 
   useEffect(() => {
@@ -65,6 +75,14 @@ export function VisaFields({
   const previewLeaveReminder = computeLeaveDateReminder(
     previewDateToExtension
   );
+
+  const leavePhase = deriveLeavePhase(value.actualLeaveDate);
+  const leaveDateHint =
+    leavePhase === "confirmed"
+      ? "Shows as “Confirmed to leave”, then finishes this visa on that day."
+      : leavePhase === "left"
+        ? "Recorded as the day they left."
+        : "The day they leave. A future date shows as “Confirmed to leave”.";
 
   function onDateExtendedChange(next: string) {
     onChange({
@@ -233,6 +251,23 @@ export function VisaFields({
                 manually.
               </p>
             </div>
+
+            <label className="block">
+              <FieldLabel required={leaveDateRequired}>Leave date</FieldLabel>
+              <input
+                type="date"
+                required={leaveDateRequired}
+                value={value.actualLeaveDate}
+                min={value.dateEntered || undefined}
+                onChange={(e) => onChange({ actualLeaveDate: e.target.value })}
+                className={
+                  errors.actualLeaveDate ? inputErrorClass : inputClass
+                }
+                aria-invalid={Boolean(errors.actualLeaveDate)}
+              />
+              <p className="mt-1 text-xs text-muted">{leaveDateHint}</p>
+              <FieldError message={errors.actualLeaveDate} />
+            </label>
 
             {moreDetailsExtra}
           </div>
