@@ -203,6 +203,7 @@ function VisaList({ mode }: VisaListProps) {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const title = mode === "active" ? "Visa List — Active" : "Visa List — Archive";
   const description =
@@ -210,14 +211,14 @@ function VisaList({ mode }: VisaListProps) {
       ? "In-Progress visas, including those that have not landed yet."
       : "Cuti, Blacklist, and Finished visa sessions.";
 
-  const filtersActive = Boolean(
-    query.trim() ||
-      companyId ||
+  const extraFiltersActive = Boolean(
+    companyId ||
       urgency !== "all" ||
       extDone !== "all" ||
       (mode === "active" && landed !== "all") ||
       (mode === "archive" && archiveStatus !== "all")
   );
+  const filtersActive = Boolean(query.trim() || extraFiltersActive);
 
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
   const safePage = Math.min(page, totalPages);
@@ -447,17 +448,39 @@ function VisaList({ mode }: VisaListProps) {
       <AddFab to="/visas/new" label="Add visa" storageKey="fab-visas" />
 
       <div className="filter-panel shrink-0">
-        <label className="block text-sm">
-          <span className="mb-1 block font-medium text-ink-soft">Search</span>
-          <input
-            type="search"
-            className={inputClass}
-            placeholder="Name or passport"
-            value={query}
-            onChange={(e) => updateParams({ q: e.target.value })}
-          />
-        </label>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="flex items-end gap-2">
+          <label className="block min-w-0 flex-1 text-sm">
+            <span className="mb-1 block font-medium text-ink-soft">Search</span>
+            <input
+              type="search"
+              className={inputClass}
+              placeholder="Name or passport"
+              value={query}
+              onChange={(e) => updateParams({ q: e.target.value })}
+            />
+          </label>
+          <button
+            type="button"
+            className="btn-ghost shrink-0 px-3 py-2 md:hidden"
+            aria-expanded={filtersOpen}
+            aria-controls="visa-list-filters"
+            onClick={() => setFiltersOpen((open) => !open)}
+          >
+            Filters
+            {extraFiltersActive ? (
+              <span className="ml-1.5 size-1.5 rounded-full bg-brand" />
+            ) : null}
+            <span className="ml-1 text-[0.65rem] text-muted" aria-hidden="true">
+              {filtersOpen ? "▲" : "▼"}
+            </span>
+          </button>
+        </div>
+        <div
+          id="visa-list-filters"
+          className={`${
+            filtersOpen ? "grid" : "hidden"
+          } gap-3 sm:grid-cols-2 lg:grid-cols-4 md:grid`}
+        >
           <label className="block text-sm">
             <span className="mb-1 block font-medium text-ink-soft">Company</span>
             <select
