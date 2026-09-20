@@ -138,6 +138,74 @@ function parseDir(value: string | null): "asc" | "desc" {
   return DEFAULT_DIR;
 }
 
+function listSortColumn(sortKey: SortKey): string {
+  switch (sortKey) {
+    case "name":
+      return "customers(full_name)";
+    case "passport":
+      return "passports(passport_number)";
+    case "company":
+      return "customers(companies(name))";
+    default:
+      return sortKey;
+  }
+}
+
+function listSortValue(
+  row: VisaWithCustomer,
+  key: SortKey
+): string | number | boolean | null {
+  switch (key) {
+    case "name":
+      return row.customers?.full_name?.trim().toLowerCase() || null;
+    case "passport":
+      return row.passports?.passport_number?.trim().toLowerCase() || null;
+    case "company":
+      return row.customers?.companies?.name?.trim().toLowerCase() || null;
+    case "route":
+      return row.route.trim().toLowerCase() || null;
+    case "status":
+      return row.status;
+    case "visa_days":
+      return row.visa_days;
+    case "extension_done":
+      return row.extension_done;
+    case "cycle_done":
+      return row.cycle_done;
+    default:
+      return row[key];
+  }
+}
+
+function compareListRows(
+  a: VisaWithCustomer,
+  b: VisaWithCustomer,
+  key: SortKey,
+  dir: "asc" | "desc"
+): number {
+  const av = listSortValue(a, key);
+  const bv = listSortValue(b, key);
+  const aNull = av === null || av === "";
+  const bNull = bv === null || bv === "";
+  const nullsFirst = key === "date_entered";
+  if (aNull || bNull) {
+    if (aNull && bNull) return a.id.localeCompare(b.id);
+    if (aNull) return nullsFirst ? -1 : 1;
+    return nullsFirst ? 1 : -1;
+  }
+  let cmp = 0;
+  if (typeof av === "boolean" && typeof bv === "boolean") {
+    cmp = Number(av) - Number(bv);
+  } else {
+    cmp = String(av).localeCompare(String(bv), undefined, {
+      numeric: true,
+      sensitivity: "base",
+    });
+  }
+  if (cmp === 0) return a.id.localeCompare(b.id);
+  return dir === "asc" ? cmp : -cmp;
+}
+
 const stickyThClass =
   "sticky top-0 z-10 whitespace-nowrap bg-paper px-3 py-2.5 shadow-[inset_0_-1px_0_0_var(--color-line)]";
 
@@ -168,7 +236,12 @@ function SortHeader({
     <th className={stickyThClass}>
       <button
         type="button"
-        onClick={() => onSort(sortKey)}
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onSort(sortKey);
+        }}
         className={`inline-flex w-full items-center gap-1 font-medium uppercase tracking-wide hover:text-ink ${alignClass} ${
           active ? "text-ink" : "text-muted"
         }`}
@@ -260,46 +333,31 @@ function VisaList({ mode }: VisaListProps) {
         : needsCustomerInner
           ? "customers!inner ( id, full_name, company_id, companies ( id, name ) )"
           : "customers ( id, full_name, company_id, companies ( id, name ) )";
-    const select = `*, ${customerSelect}, passports!passport_id ( id, passport_number, passport_expiry )`;
+    const passportSelect =
+      sortKey === "passport"
+        ? "passports!passport_id!inner ( id, passport_number, passport_expiry )"
+        : "passports!passport_id ( id, passport_number, passport_expiry )";
+    const select = `*, ${customerSelect}, ${passportSelect}`;
 
     let q = supabase.from("visas").select(select, { count: "exact" });
 
     const ascending = sortDir === "asc";
-    switch (sortKey) {
-      case "name":
-        q = q
-          .order("full_name", { ascending, foreignTable: "customers" })
-          .order("id", { ascending: true });
-        break;
-      case "passport":
-        q = q
-          .order("passport_number", { ascending, foreignTable: "passports" })
-          .order("id", { ascending: true });
-        break;
-      case "company":
-        q = q
-          .order("name", { ascending, foreignTable: "customers.companies" })
-          .order("id", { ascending: true });
-        break;
-      case "date_entered":
-        q = q
-          .order(sortKey, { ascending, nullsFirst: true })
-          .order("id", { ascending: true });
-        break;
-      case "date_to_extension":
-      case "date_extended":
-      case "leave_date_reminder":
-      case "actual_leave_date":
-        q = q
-          .order(sortKey, { ascending, nullsFirst: false })
-          .order("id", { ascending: true });
-        break;
-      default:
-        q = q
-          .order(sortKey, { ascending })
-          .order("id", { ascending: true });
-        break;
-    }
+    const nullableSort =
+      sortKey === "name" ||
+      sortKey === "passport" ||
+      sortKey === "company" ||
+      sortKey === "route" ||
+      sortKey === "date_entered" ||
+      sortKey === "date_to_extension" ||
+      sortKey === "date_extended" ||
+      sortKey === "leave_date_reminder" ||
+      sortKey === "actual_leave_date";
+    q = q
+      .order(listSortColumn(sortKey), {
+        ascending,
+        ...(nullableSort ? { nullsFirst: sortKey === "date_entered" } : {}),
+      })
+      .order("id", { ascending: true });
 
     if (mode === "active") {
       q = q.eq("status", "In-Progress");
@@ -373,7 +431,9 @@ function VisaList({ mode }: VisaListProps) {
       setRows([]);
       setTotalCount(0);
     } else {
-      setRows((data ?? []) as unknown as VisaWithCustomer[]);
+      const nextRows = ((data ?? []) as unknown as VisaWithCustomer[]).slice();
+      nextRows.sort((a, b) => compareListRows(a, b, sortKey, sortDir));
+      setRows(nextRows);
       setTotalCount(count ?? 0);
     }
     setLoading(false);
