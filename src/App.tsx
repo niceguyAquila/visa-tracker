@@ -12,6 +12,7 @@ import { Login } from "./pages/Login";
 import { Register } from "./pages/Register";
 import { ResetPassword } from "./pages/ResetPassword";
 import { SettingsPage } from "./pages/SettingsPage";
+import { EVisaForm } from "./pages/EVisaForm";
 import { VisaDetail } from "./pages/VisaDetail";
 import { VisaForm } from "./pages/VisaForm";
 import {
@@ -41,6 +42,7 @@ export default function App() {
             element={<EntryForm defaultMode="visaOnly" />}
           />
           <Route path="/visas/:id/edit" element={<VisaForm />} />
+          <Route path="/visas/:id/evisa" element={<EVisaForm />} />
           <Route path="/visas/:id" element={<VisaDetail />} />
           <Route path="/customers" element={<CustomersPage />} />
           <Route

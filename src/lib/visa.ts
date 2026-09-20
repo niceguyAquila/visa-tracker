@@ -64,12 +64,12 @@ export function computeDateToExtension(
   return null;
 }
 
-/** Matches DB: date_extended + 60, or blank if not extended. */
+/** Matches DB: date_to_extension + 60, or blank until date entered is set. */
 export function computeLeaveDateReminder(
-  dateExtended: string | null | undefined
+  dateToExtension: string | null | undefined
 ): string | null {
-  if (!dateExtended) return null;
-  return addDaysISO(dateExtended, 60);
+  if (!dateToExtension) return null;
+  return addDaysISO(dateToExtension, 60);
 }
 
 /** Matches DB generated status column. */

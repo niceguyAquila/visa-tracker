@@ -1,21 +1,17 @@
 import { currentPassport } from "./customer";
-import { daysUntilISODate } from "./dates";
+import { daysUntilISODate, isBeforeUtcMonths } from "./dates";
 import type { Company, CustomerWithCompany, Passport, VisaStatus } from "../types";
 
 export type Kpis = {
   customers: number;
   companies: number;
   expired: number;
-  expiring10: number;
-  expiring30: number;
   visas: number;
   extensions: number;
   activeVisas: number;
   notLanded: number;
   archivedVisas: number;
-  extToday: number;
   extDue10: number;
-  extDue30: number;
 };
 
 export type CompanyMetrics = Kpis & {
@@ -36,16 +32,12 @@ const emptyKpis = (companyCount: number, customerCount = 0): Kpis => ({
   customers: customerCount,
   companies: companyCount,
   expired: 0,
-  expiring10: 0,
-  expiring30: 0,
   visas: 0,
   extensions: 0,
   activeVisas: 0,
   notLanded: 0,
   archivedVisas: 0,
-  extToday: 0,
   extDue10: 0,
-  extDue30: 0,
 });
 
 export type CustomerForMetrics = Pick<
@@ -74,11 +66,8 @@ export function visasForCompany(
 function addPassportKpis(kpis: Kpis, customers: CustomerForMetrics[]) {
   for (const c of customers) {
     const current = currentPassport(c.passports);
-    if (current) {
-      const d = daysUntilISODate(current.passport_expiry);
-      if (d < 0) kpis.expired += 1;
-      else if (d <= 10) kpis.expiring10 += 1;
-      else if (d <= 30) kpis.expiring30 += 1;
+    if (current && isBeforeUtcMonths(current.passport_expiry, 7)) {
+      kpis.expired += 1;
     }
     kpis.visas += c.visa_count;
     kpis.extensions += c.extension_count;
@@ -88,13 +77,14 @@ function addPassportKpis(kpis: Kpis, customers: CustomerForMetrics[]) {
 function addVisaKpis(kpis: Kpis, visas: VisaForMetrics[]) {
   for (const v of visas) {
     if (v.status === "In-Progress") {
+      if (!v.date_entered) {
+        kpis.notLanded += 1;
+        continue;
+      }
       kpis.activeVisas += 1;
-      if (!v.date_entered) kpis.notLanded += 1;
       if (v.extension_done || !v.date_to_extension) continue;
       const d = daysUntilISODate(v.date_to_extension);
-      if (d === 0) kpis.extToday += 1;
-      else if (d > 0 && d <= 10) kpis.extDue10 += 1;
-      else if (d > 10 && d <= 30) kpis.extDue30 += 1;
+      if (d >= 0 && d <= 10) kpis.extDue10 += 1;
     } else {
       kpis.archivedVisas += 1;
     }

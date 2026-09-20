@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { CompanySwatch } from "../components/CompanyChip";
+import { ExportReportButton } from "../components/ExportReportButton";
 import { daysUntilISODate, formatDisplayDate } from "../lib/dates";
 import {
   aggregateKpis,
@@ -111,58 +112,26 @@ function PassportVisaKpis({
 
       <MetricSection
         title="Passport"
-        hint="How many passports have expired or are approaching expiry."
+        hint="Current passports that expire in less than 7 months, including already expired."
       >
         <KpiCard
-          label="Expired"
+          label="Expiry <7 mo"
           value={kpis.expired}
           tone="red"
-          to={kpiPath("/customers", { expiry: "expired", company: companyId })}
-        />
-        <KpiCard
-          label="Expiring ≤10d"
-          value={kpis.expiring10}
-          tone="amber"
-          to={kpiPath("/customers", { expiry: "10", company: companyId })}
-        />
-        <KpiCard
-          label="Expiring ≤30d"
-          value={kpis.expiring30}
-          tone="yellow"
-          to={kpiPath("/customers", { expiry: "30", company: companyId })}
+          to={kpiPath("/customers", { expiry: "7m", company: companyId })}
         />
       </MetricSection>
 
       <MetricSection
         title="Visa"
-        hint="Active visas closing in on their extension date."
+        hint="Active visas with extension due today through the next 10 days."
       >
-        <KpiCard
-          label="Due today"
-          value={kpis.extToday}
-          tone="red"
-          to={kpiPath("/visas/active", {
-            urgency: "today",
-            ext: "no",
-            company: companyId,
-          })}
-        />
         <KpiCard
           label="Due ≤10d"
           value={kpis.extDue10}
           tone="amber"
           to={kpiPath("/visas/active", {
             urgency: "10",
-            ext: "no",
-            company: companyId,
-          })}
-        />
-        <KpiCard
-          label="Due ≤30d"
-          value={kpis.extDue30}
-          tone="yellow"
-          to={kpiPath("/visas/active", {
-            urgency: "30",
             ext: "no",
             company: companyId,
           })}
@@ -322,23 +291,30 @@ export function Dashboard() {
               : "Metrics across all companies."}
           </p>
         </div>
-        {companies.length > 0 ? (
-          <label className="block text-sm sm:min-w-56">
-            <span className="mb-1 block font-medium text-ink-soft">Company</span>
-            <select
-              className="input-field text-sm"
-              value={focusedId ?? ""}
-              onChange={(e) => setFocusedCompany(e.target.value || null)}
-            >
-              <option value="">All companies</option>
-              {companies.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </label>
-        ) : null}
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+          <ExportReportButton
+            companyId={focusedId}
+            companyName={focusedCompany?.name}
+            disabled={loading || customers.length === 0}
+          />
+          {companies.length > 0 ? (
+            <label className="block text-sm sm:min-w-56">
+              <span className="mb-1 block font-medium text-ink-soft">Company</span>
+              <select
+                className="input-field text-sm"
+                value={focusedId ?? ""}
+                onChange={(e) => setFocusedCompany(e.target.value || null)}
+              >
+                <option value="">All companies</option>
+                {companies.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
+        </div>
       </div>
 
       {loading ? (
@@ -429,13 +405,10 @@ export function Dashboard() {
                       <th className="px-3 py-2.5">Company</th>
                       <th className="px-3 py-2.5 text-right">Customers</th>
                       <th className="px-3 py-2.5 text-right">Active</th>
+                      <th className="px-3 py-2.5 text-right">Not landed</th>
                       <th className="px-3 py-2.5 text-right">Archive</th>
-                      <th className="px-3 py-2.5 text-right">Pass. expired</th>
-                      <th className="px-3 py-2.5 text-right">Pass. ≤10d</th>
-                      <th className="px-3 py-2.5 text-right">Pass. ≤30d</th>
-                      <th className="px-3 py-2.5 text-right">Ext. today</th>
+                      <th className="px-3 py-2.5 text-right">Pass. &lt;7 mo</th>
                       <th className="px-3 py-2.5 text-right">Ext. ≤10d</th>
-                      <th className="px-3 py-2.5 text-right">Ext. ≤30d</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -466,25 +439,16 @@ export function Dashboard() {
                           {row.activeVisas}
                         </td>
                         <td className="px-3 py-2.5 text-right tabular-nums text-ink-soft">
+                          {row.notLanded}
+                        </td>
+                        <td className="px-3 py-2.5 text-right tabular-nums text-ink-soft">
                           {row.archivedVisas}
                         </td>
                         <td className="px-3 py-2.5 text-right tabular-nums text-ink-soft">
                           {row.expired}
                         </td>
                         <td className="px-3 py-2.5 text-right tabular-nums text-ink-soft">
-                          {row.expiring10}
-                        </td>
-                        <td className="px-3 py-2.5 text-right tabular-nums text-ink-soft">
-                          {row.expiring30}
-                        </td>
-                        <td className="px-3 py-2.5 text-right tabular-nums text-ink-soft">
-                          {row.extToday}
-                        </td>
-                        <td className="px-3 py-2.5 text-right tabular-nums text-ink-soft">
                           {row.extDue10}
-                        </td>
-                        <td className="px-3 py-2.5 text-right tabular-nums text-ink-soft">
-                          {row.extDue30}
                         </td>
                       </tr>
                     ))}

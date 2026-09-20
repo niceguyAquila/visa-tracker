@@ -1,14 +1,15 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { CompanyChip } from "../components/CompanyChip";
-import { daysUntilISODate, formatDisplayDate } from "../lib/dates";
+import { daysUntilISODate, formatDisplayDate, formatOptionalDisplayDate } from "../lib/dates";
+import { embedOne, EVISA_EMBED } from "../lib/evisa";
 import { supabase } from "../lib/supabase";
 import { statusBadgeClass, landedBadgeClass, landedLabel, urgencyClass } from "../lib/ui";
 import { isVisaLanded } from "../lib/visa";
-import type { VisaWithCustomer } from "../types";
+import type { EVisa, VisaWithCustomer } from "../types";
 
 const VISA_SELECT =
-  "*, customers ( id, full_name, company_id, companies ( id, name, color ) ), passports!passport_id ( id, passport_number, passport_expiry )";
+  `*, customers ( id, full_name, company_id, companies ( id, name, color ) ), passports!passport_id ( id, passport_number, passport_expiry ), ${EVISA_EMBED}`;
 
 function relativeLabel(
   days: number,
@@ -86,6 +87,8 @@ export function VisaDetail() {
   const navigate = useNavigate();
   const location = useLocation();
   const [visa, setVisa] = useState<VisaWithCustomer | null>(null);
+  const [evisa, setEvisa] = useState<EVisa | null>(null);
+  const [evisaOpen, setEvisaOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [flashSuccess, setFlashSuccess] = useState<string | null>(null);
@@ -110,16 +113,47 @@ export function VisaDetail() {
     if (qErr || !data) {
       setError(qErr?.message ?? "Not found");
       setVisa(null);
+      setEvisa(null);
       setLoading(false);
       return;
     }
     setVisa(data as VisaWithCustomer);
+    setEvisa(embedOne((data as VisaWithCustomer).e_visas));
     setLoading(false);
   }, [id]);
 
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    if (!evisaOpen) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setEvisaOpen(false);
+    }
+    document.addEventListener("keydown", onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [evisaOpen]);
+
+  async function removeEvisa() {
+    if (!evisa) return;
+    if (!confirm("Delete this e-visa record?")) return;
+    const { error: dErr } = await supabase
+      .from("e_visas")
+      .delete()
+      .eq("id", evisa.id);
+    if (dErr) {
+      setError(dErr.message);
+      return;
+    }
+    setEvisa(null);
+    setFlashSuccess("e-Visa deleted.");
+  }
 
   async function removeVisa() {
     if (!id) return;
@@ -278,7 +312,16 @@ export function VisaDetail() {
       </section>
 
       <section className="panel p-4">
-        <h2 className="text-sm font-semibold text-ink">Details</h2>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-sm font-semibold text-ink">Details</h2>
+          <button
+            type="button"
+            className="btn-ghost px-3 py-1.5"
+            onClick={() => setEvisaOpen(true)}
+          >
+            {evisa ? "View e-visa" : "Add e-visa"}
+          </button>
+        </div>
         <dl className="mt-3 grid gap-4 sm:grid-cols-2">
           <div>
             <dt className="meta">
@@ -334,6 +377,158 @@ export function VisaDetail() {
           </div>
         </dl>
       </section>
+
+      {evisaOpen ? (
+        <div
+          className="fixed inset-0 z-[70] flex items-end justify-center bg-ink/40 p-0 sm:items-center sm:p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="evisa-dialog-title"
+          onClick={() => setEvisaOpen(false)}
+        >
+          <div
+            className="panel flex max-h-[90dvh] w-full max-w-2xl flex-col overflow-hidden rounded-t-xl sm:rounded-lg"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-3 border-b border-line p-4">
+              <div>
+                <h2 id="evisa-dialog-title" className="text-sm font-semibold text-ink">
+                  e-Visa
+                </h2>
+                {evisa ? (
+                  <p className="mt-0.5 font-mono text-sm text-muted">
+                    {evisa.evisa_number}
+                  </p>
+                ) : null}
+              </div>
+              <div className="flex shrink-0 flex-wrap justify-end gap-2">
+                {evisa ? (
+                  <>
+                    <Link
+                      to={`/visas/${id}/evisa`}
+                      className="btn-ghost px-3 py-1.5"
+                    >
+                      Edit
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => void removeEvisa()}
+                      className="btn-danger px-3 py-1.5"
+                    >
+                      Delete
+                    </button>
+                  </>
+                ) : (
+                  <Link
+                    to={`/visas/${id}/evisa`}
+                    className="btn-primary px-3 py-1.5"
+                  >
+                    Add e-visa
+                  </Link>
+                )}
+                <button
+                  type="button"
+                  className="btn-ghost px-3 py-1.5"
+                  onClick={() => setEvisaOpen(false)}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+
+            <div className="overflow-y-auto p-4">
+              {evisa ? (
+                <dl className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <dt className="meta">eVISA number</dt>
+                    <dd className="mt-1 font-mono text-sm text-ink">
+                      {evisa.evisa_number}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="meta">Ref. number</dt>
+                    <dd className="mt-1 text-sm text-ink">
+                      {evisa.ref_number || "—"}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="meta">eVISA issue date</dt>
+                    <dd className="mt-1 text-sm text-ink">
+                      {formatDisplayDate(evisa.issue_date)}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="meta">eVISA expire date</dt>
+                    <dd className="mt-1 text-sm text-ink">
+                      {formatDisplayDate(evisa.expire_date)}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="meta">Place of issue</dt>
+                    <dd className="mt-1 text-sm text-ink">
+                      {evisa.place_of_issue || "—"}
+                    </dd>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <dt className="meta">Remarks</dt>
+                    <dd className="mt-1 whitespace-pre-wrap text-sm text-ink">
+                      {evisa.remarks || "—"}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="meta">Gender</dt>
+                    <dd className="mt-1 text-sm text-ink">
+                      {evisa.gender || "—"}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="meta">Full name</dt>
+                    <dd className="mt-1 text-sm text-ink">{evisa.full_name}</dd>
+                  </div>
+                  <div>
+                    <dt className="meta">Date of birth</dt>
+                    <dd className="mt-1 text-sm text-ink">
+                      {formatOptionalDisplayDate(evisa.date_of_birth)}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="meta">Nationality</dt>
+                    <dd className="mt-1 text-sm text-ink">
+                      {evisa.nationality || "—"}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="meta">Travel document</dt>
+                    <dd className="mt-1 text-sm text-ink">
+                      {evisa.travel_document}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="meta">Travel doc. no</dt>
+                    <dd className="mt-1 font-mono text-sm text-ink">
+                      {evisa.travel_doc_no}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="meta">Travel doc. issue</dt>
+                    <dd className="mt-1 text-sm text-ink">
+                      {formatOptionalDisplayDate(evisa.travel_doc_issue)}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="meta">Travel doc. expiry</dt>
+                    <dd className="mt-1 text-sm text-ink">
+                      {formatOptionalDisplayDate(evisa.travel_doc_expiry)}
+                    </dd>
+                  </div>
+                </dl>
+              ) : (
+                <p className="text-sm text-muted">No e-visa recorded yet.</p>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

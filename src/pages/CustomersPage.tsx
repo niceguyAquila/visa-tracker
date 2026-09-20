@@ -2,19 +2,20 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { AddFab } from "../components/AddFab";
 import { CompanyChip } from "../components/CompanyChip";
+import { ExportReportButton } from "../components/ExportReportButton";
 import {
   currentPassport,
   CUSTOMER_LIST_SELECT,
   unresolvedDuplicateGroups,
 } from "../lib/customer";
 import { supabase } from "../lib/supabase";
-import { daysUntilISODate, formatDisplayDate } from "../lib/dates";
+import { daysUntilISODate, formatDisplayDate, isBeforeUtcMonths } from "../lib/dates";
 import { urgencyClass } from "../lib/ui";
 import type { CustomerWithCompany, DuplicateExclusion } from "../types";
 
 const inputClass = "input-field text-sm";
 
-type ExpiryFilter = "all" | "expired" | "10" | "30" | "ok";
+type ExpiryFilter = "all" | "expired" | "7m" | "10" | "30" | "ok";
 
 function parseISODateNum(s: string): number {
   const [y, m, d] = s.split("-").map(Number);
@@ -22,7 +23,13 @@ function parseISODateNum(s: string): number {
 }
 
 function parseExpiryFilter(value: string | null): ExpiryFilter {
-  if (value === "expired" || value === "10" || value === "30" || value === "ok") {
+  if (
+    value === "expired" ||
+    value === "7m" ||
+    value === "10" ||
+    value === "30" ||
+    value === "ok"
+  ) {
     return value;
   }
   return "all";
@@ -41,11 +48,17 @@ function matchesQuery(c: CustomerWithCompany, q: string): boolean {
   );
 }
 
-function matchesExpiry(days: number | null, filter: ExpiryFilter): boolean {
-  if (days === null) return filter === "all";
+function matchesExpiry(
+  expiryDate: string | null,
+  filter: ExpiryFilter
+): boolean {
+  if (!expiryDate) return filter === "all";
+  const days = daysUntilISODate(expiryDate);
   switch (filter) {
     case "expired":
       return days < 0;
+    case "7m":
+      return isBeforeUtcMonths(expiryDate, 7);
     case "10":
       return days >= 0 && days <= 10;
     case "30":
@@ -129,8 +142,7 @@ export function CustomersPage() {
         if (companyId && c.company_id !== companyId) return false;
         if (!matchesQuery(c, q)) return false;
         const current = currentPassport(c.passports);
-        const days = current ? daysUntilISODate(current.passport_expiry) : null;
-        return matchesExpiry(days, expiry);
+        return matchesExpiry(current?.passport_expiry ?? null, expiry);
       })
       .sort((a, b) => {
         const aP = currentPassport(a.passports);
@@ -156,11 +168,18 @@ export function CustomersPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="page-title">Customers</h1>
-        <p className="page-sub">
-          Track passport expiry dates by company.
-        </p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 className="page-title">Customers</h1>
+          <p className="page-sub">
+            Track passport expiry dates by company.
+          </p>
+        </div>
+        <ExportReportButton
+          companyId={companyId || null}
+          companyName={companies.find((c) => c.id === companyId)?.name}
+          disabled={loading || rows.length === 0}
+        />
       </div>
 
       <AddFab
@@ -244,6 +263,7 @@ export function CustomersPage() {
                 >
                   <option value="all">All</option>
                   <option value="expired">Expired</option>
+                  <option value="7m">Expiry &lt;7 months</option>
                   <option value="10">Expiring ≤10 days</option>
                   <option value="30">Expiring ≤30 days</option>
                   <option value="ok">More than 30 days</option>

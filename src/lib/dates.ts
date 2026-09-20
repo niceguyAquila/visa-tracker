@@ -37,3 +37,21 @@ export function formatOptionalDisplayDate(
   if (!iso) return empty;
   return formatDisplayDate(iso);
 }
+
+function utcDateOnly(from = new Date()): Date {
+  return new Date(
+    Date.UTC(from.getUTCFullYear(), from.getUTCMonth(), from.getUTCDate())
+  );
+}
+
+/** True if the ISO date is before today + `months` (UTC, date-only). */
+export function isBeforeUtcMonths(
+  iso: string,
+  months: number,
+  from = new Date()
+): boolean {
+  const target = parseISODate(iso);
+  const cutoff = utcDateOnly(from);
+  cutoff.setUTCMonth(cutoff.getUTCMonth() + months);
+  return target.getTime() < cutoff.getTime();
+}

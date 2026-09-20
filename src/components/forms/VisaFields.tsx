@@ -63,7 +63,7 @@ export function VisaFields({
     value.visaDays
   );
   const previewLeaveReminder = computeLeaveDateReminder(
-    value.dateExtended || null
+    previewDateToExtension
   );
 
   function onDateExtendedChange(next: string) {
@@ -166,7 +166,9 @@ export function VisaFields({
                 ? formatDisplayDate(previewLeaveReminder)
                 : "—"
             }
-            hint={!value.dateExtended ? "After extension date is set" : undefined}
+            hint={
+              !value.dateEntered ? "After date entered is set" : undefined
+            }
           />
         </ol>
       </div>

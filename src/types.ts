@@ -83,9 +83,32 @@ export type EntryPort = {
   created_at: string;
 };
 
+export type EVisa = {
+  id: string;
+  org_id: string;
+  visa_id: string;
+  passport_id: string;
+  evisa_number: string;
+  ref_number: string;
+  issue_date: string;
+  expire_date: string;
+  place_of_issue: string;
+  remarks: string;
+  gender: string;
+  full_name: string;
+  date_of_birth: string | null;
+  nationality: string;
+  travel_document: string;
+  travel_doc_no: string;
+  travel_doc_issue: string | null;
+  travel_doc_expiry: string | null;
+  created_at: string;
+};
+
 export type VisaWithCustomer = Visa & {
   customers: (Pick<Customer, "id" | "full_name" | "company_id"> & {
     companies: Pick<Company, "id" | "name" | "color"> | null;
   }) | null;
   passports: Pick<Passport, "id" | "passport_number" | "passport_expiry"> | null;
+  e_visas?: EVisa | EVisa[] | null;
 };

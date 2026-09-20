@@ -13,11 +13,16 @@ import {
   friendlyPassportConflict,
   sortPassports,
 } from "../lib/customer";
+import { evisaNumberOf } from "../lib/evisa";
 import { supabase } from "../lib/supabase";
 import { daysUntilISODate, formatDisplayDate } from "../lib/dates";
 import { statusBadgeClass, landedBadgeClass, landedLabel, urgencyClass } from "../lib/ui";
 import { isVisaLanded } from "../lib/visa";
-import type { CustomerWithCompany, Passport, Visa } from "../types";
+import type { CustomerWithCompany, EVisa, Passport, Visa } from "../types";
+
+type CustomerVisaRow = Visa & {
+  e_visas: Pick<EVisa, "evisa_number"> | Pick<EVisa, "evisa_number">[] | null;
+};
 
 type PassportDraft = {
   passportNumber: string;
@@ -36,7 +41,7 @@ export function CustomerDetail() {
   const navigate = useNavigate();
   const location = useLocation();
   const [customer, setCustomer] = useState<CustomerWithCompany | null>(null);
-  const [visas, setVisas] = useState<Visa[]>([]);
+  const [visas, setVisas] = useState<CustomerVisaRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [flashError, setFlashError] = useState<string | null>(null);
@@ -87,7 +92,7 @@ export function CustomerDetail() {
 
     const { data: visaRows, error: vErr } = await supabase
       .from("visas")
-      .select("*")
+      .select("*, e_visas!visa_id ( evisa_number )")
       .eq("customer_id", id)
       .order("date_entered", { ascending: false, nullsFirst: true })
       .order("created_at", { ascending: false });
@@ -95,7 +100,7 @@ export function CustomerDetail() {
       setError(vErr.message);
       setVisas([]);
     } else {
-      setVisas((visaRows ?? []) as Visa[]);
+      setVisas((visaRows ?? []) as CustomerVisaRow[]);
     }
     setLoading(false);
   }, [id]);
@@ -215,7 +220,7 @@ export function CustomerDetail() {
     if (dErr) {
       setError(
         /restrict|foreign key|passport_id/i.test(dErr.message)
-          ? "This passport is used on a visa, so it cannot be deleted."
+          ? "This passport is used on a visa or e-visa, so it cannot be deleted."
           : dErr.message
       );
       return;
@@ -600,6 +605,7 @@ export function CustomerDetail() {
             {visas.map((v) => {
               const passportNumber = passportById.get(v.passport_id)
                 ?.passport_number;
+              const evisaNumber = evisaNumberOf(v.e_visas);
               const landed = isVisaLanded(v.date_entered);
               return (
                 <li key={v.id}>
@@ -614,6 +620,12 @@ export function CustomerDetail() {
                             </>
                           ) : null}
                           {v.visa_days}
+                          {evisaNumber ? (
+                            <>
+                              {" · "}
+                              <span className="font-mono">{evisaNumber}</span>
+                            </>
+                          ) : null}
                         </p>
                         <p className="text-sm text-muted">
                           {v.date_entered

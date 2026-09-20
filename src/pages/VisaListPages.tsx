@@ -91,8 +91,8 @@ function parseExtDone(value: string | null): ExtDoneFilter {
 }
 
 function parseLanded(value: string | null): LandedFilter {
-  if (value === "yes" || value === "no") return value;
-  return "all";
+  if (value === "all" || value === "no") return value;
+  return "yes";
 }
 
 function parseArchiveStatus(value: string | null): ArchiveStatusFilter {
@@ -201,7 +201,7 @@ function VisaList({ mode }: VisaListProps) {
   const title = mode === "active" ? "Visa List — Active" : "Visa List — Archive";
   const description =
     mode === "active"
-      ? "In-Progress visas, including those ready before the customer has landed."
+      ? "In-Progress visas that have landed. Use Arrival to see visas that are ready but not yet in the country."
       : "Cuti, Blacklist, and Finished visa sessions.";
 
   const filtersActive = Boolean(
@@ -209,7 +209,7 @@ function VisaList({ mode }: VisaListProps) {
       companyId ||
       urgency !== "all" ||
       extDone !== "all" ||
-      (mode === "active" && landed !== "all") ||
+      (mode === "active" && landed !== "yes") ||
       (mode === "archive" && archiveStatus !== "all")
   );
 
@@ -313,7 +313,7 @@ function VisaList({ mode }: VisaListProps) {
       } else if (urgency === "today") {
         q = q.eq("date_to_extension", today);
       } else if (urgency === "10") {
-        q = q.gt("date_to_extension", today).lte("date_to_extension", addDaysISO(today, 10));
+        q = q.gte("date_to_extension", today).lte("date_to_extension", addDaysISO(today, 10));
       } else if (urgency === "30") {
         q = q
           .gt("date_to_extension", addDaysISO(today, 10))
@@ -484,7 +484,7 @@ function VisaList({ mode }: VisaListProps) {
               <option value="all">All</option>
               <option value="expired">Overdue</option>
               <option value="today">Due today</option>
-              <option value="10">Due 1–10 days</option>
+              <option value="10">Due ≤10 days</option>
               <option value="30">Due 11–30 days</option>
               <option value="ok">More than 30 days</option>
             </select>
@@ -533,13 +533,13 @@ function VisaList({ mode }: VisaListProps) {
                 value={landed}
                 onChange={(e) =>
                   updateParams({
-                    landed: e.target.value === "all" ? "" : e.target.value,
+                    landed: e.target.value === "yes" ? "" : e.target.value,
                   })
                 }
               >
-                <option value="all">All</option>
                 <option value="yes">Landed</option>
                 <option value="no">Not landed</option>
+                <option value="all">All In-Progress</option>
               </select>
             </label>
           )}
