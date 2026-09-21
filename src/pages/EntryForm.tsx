@@ -76,6 +76,7 @@ const emptyVisa = (): VisaFieldsValue => ({
   dateExtended: "",
   extensionDone: false,
   route: "",
+  exitRoute: "",
   actualLeaveDate: "",
 });
 
@@ -279,6 +280,7 @@ export function EntryForm({ defaultMode }: EntryFormProps) {
       visa.dateExtended !== blank.dateExtended ||
       visa.extensionDone !== blank.extensionDone ||
       visa.route.trim() !== blank.route ||
+      visa.exitRoute.trim() !== blank.exitRoute ||
       visa.visaDays !== blank.visaDays ||
       visa.actualLeaveDate !== blank.actualLeaveDate ||
       visaState !== "In-Progress"
@@ -491,6 +493,7 @@ export function EntryForm({ defaultMode }: EntryFormProps) {
         cuti: flags.cuti,
         blacklist: flags.blacklist,
         route: visa.route.trim(),
+        exit_route: visa.exitRoute.trim(),
         actual_leave_date: actualLeaveDateForSave(visa.actualLeaveDate),
       })
       .select("id")

@@ -24,6 +24,7 @@ export type VisaFieldsValue = {
   dateExtended: string;
   extensionDone: boolean;
   route: string;
+  exitRoute: string;
   actualLeaveDate: string;
 };
 
@@ -65,9 +66,15 @@ export function VisaFields({
     if (hasAdvanced) setMoreOpen(true);
   }, [hasAdvanced]);
 
-  const portOptions = mergeEntryPortOptions(customPorts, value.route);
-  const selectValue =
+  const portOptions = mergeEntryPortOptions(
+    customPorts,
+    value.route,
+    value.exitRoute
+  );
+  const routeValue =
     existingEntryPort(value.route, portOptions) ?? value.route;
+  const exitRouteValue =
+    existingEntryPort(value.exitRoute, portOptions) ?? value.exitRoute;
 
   const previewDateToExtension = computeDateToExtension(
     value.dateEntered,
@@ -121,28 +128,45 @@ export function VisaFields({
             aria-invalid={Boolean(errors.dateEntered)}
           />
           <p className="mt-1 text-xs text-muted">
-            Optional. Leave blank if the customer has not landed yet.
+            Optional. Leave blank if the customer is still waiting.
           </p>
           <FieldError message={errors.dateEntered} />
         </label>
       </div>
 
       <div>
-        <label className="block">
-          <FieldLabel>Route</FieldLabel>
-          <select
-            value={selectValue}
-            onChange={(e) => onChange({ route: e.target.value })}
-            className={inputClass}
-          >
-            <option value="">Select…</option>
-            {portOptions.map((port) => (
-              <option key={port} value={port}>
-                {port}
-              </option>
-            ))}
-          </select>
-        </label>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className="block">
+            <FieldLabel>Route</FieldLabel>
+            <select
+              value={routeValue}
+              onChange={(e) => onChange({ route: e.target.value })}
+              className={inputClass}
+            >
+              <option value="">Select…</option>
+              {portOptions.map((port) => (
+                <option key={port} value={port}>
+                  {port}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="block">
+            <FieldLabel>Exit Route</FieldLabel>
+            <select
+              value={exitRouteValue}
+              onChange={(e) => onChange({ exitRoute: e.target.value })}
+              className={inputClass}
+            >
+              <option value="">Select…</option>
+              {portOptions.map((port) => (
+                <option key={port} value={port}>
+                  {port}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
         <p className="mt-1 text-xs text-muted">
           Need another?{" "}
           <Link to="/settings#ports" className="link-brand">
@@ -159,11 +183,11 @@ export function VisaFields({
           <TimelineStep
             label="Entered"
             value={
-              value.dateEntered ? formatDisplayDate(value.dateEntered) : "Not landed"
+              value.dateEntered ? formatDisplayDate(value.dateEntered) : "Waiting"
             }
             hint={
               !value.dateEntered
-                ? "Fill in when the customer lands"
+                ? "Fill in when the customer arrives"
                 : undefined
             }
           />

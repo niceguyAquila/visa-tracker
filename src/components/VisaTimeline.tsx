@@ -68,7 +68,7 @@ function buildNodes(visa: VisaTimelineValue): TimelineNode[] {
     : {
         id: "entered",
         label: "Entered",
-        value: "Not landed",
+        value: "Waiting",
         appearance: "pending",
       };
 

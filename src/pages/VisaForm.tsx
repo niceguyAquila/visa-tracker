@@ -43,6 +43,7 @@ export function VisaForm() {
     dateExtended: "",
     extensionDone: false,
     route: "",
+    exitRoute: "",
     actualLeaveDate: "",
   });
   const [visaState, setVisaState] = useState<VisaStatus>("In-Progress");
@@ -122,6 +123,7 @@ export function VisaForm() {
         dateExtended: rowVisa.date_extended ?? "",
         extensionDone: rowVisa.extension_done,
         route: rowVisa.route,
+        exitRoute: rowVisa.exit_route ?? "",
         actualLeaveDate: rowVisa.actual_leave_date ?? "",
       });
       setVisaState(
@@ -177,6 +179,7 @@ export function VisaForm() {
         cuti: flags.cuti,
         blacklist: flags.blacklist,
         route: visa.route.trim(),
+        exit_route: visa.exitRoute.trim(),
         actual_leave_date: actualLeaveDateForSave(visa.actualLeaveDate),
       })
       .eq("id", id);

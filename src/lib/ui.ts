@@ -62,7 +62,7 @@ export function landedBadgeClass(landed: boolean): string {
 }
 
 export function landedLabel(landed: boolean): string {
-  return landed ? "Landed" : "Not landed";
+  return landed ? "Arrived" : "Waiting";
 }
 
 export function leavePhaseBadgeClass(phase: LeavePhase): string {

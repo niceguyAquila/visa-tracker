@@ -26,7 +26,7 @@ function ArchiveWarning({ status }: { status: VisaStatus }) {
   if (status === "Cuti" || status === "Blacklist") {
     return (
       <p className="rounded-lg border border-line bg-paper px-3 py-2 text-sm text-muted">
-        This status moves the visa to Archive (no longer listed under Active).
+        This status moves the visa to Archive (no longer listed under Arrived).
       </p>
     );
   }

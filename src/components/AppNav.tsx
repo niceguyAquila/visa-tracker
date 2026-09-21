@@ -4,8 +4,7 @@ import type { SVGProps } from "react";
 const links = [
   { to: "/", label: "Dashboard", short: "Dash", end: true, icon: IconGrid },
   { to: "/customers", label: "Customers", short: "People", end: true, icon: IconPeople },
-  { to: "/visas/active", label: "Visa Active", short: "Active", end: true, icon: IconStamp },
-  { to: "/visas/archive", label: "Visa Archive", short: "Archive", end: true, icon: IconArchive },
+  { to: "/visas/active", label: "Arrived", short: "Arrived", end: true, icon: IconStamp },
   { to: "/settings", label: "Settings", short: "Settings", end: true, icon: IconSettings },
 ] as const;
 
@@ -49,16 +48,6 @@ function IconStamp(props: SVGProps<SVGSVGElement>) {
       <circle cx="12" cy="11" r="6.5" />
       <path d="M9 11.2l2 2 4.2-4.4" strokeLinecap="round" strokeLinejoin="round" />
       <path d="M6 19h12" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function IconArchive(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" {...props}>
-      <rect x="4" y="4" width="16" height="5" rx="1.2" />
-      <path d="M6 9v9.5A1.5 1.5 0 0 0 7.5 20h9a1.5 1.5 0 0 0 1.5-1.5V9" />
-      <path d="M10 13h4" strokeLinecap="round" />
     </svg>
   );
 }

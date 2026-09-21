@@ -15,10 +15,7 @@ import { SettingsPage } from "./pages/SettingsPage";
 import { EVisaForm } from "./pages/EVisaForm";
 import { VisaDetail } from "./pages/VisaDetail";
 import { VisaForm } from "./pages/VisaForm";
-import {
-  VisaListActivePage,
-  VisaListArchivePage,
-} from "./pages/VisaListPages";
+import { VisaListActivePage } from "./pages/VisaListPages";
 
 export default function App() {
   return (
@@ -36,7 +33,7 @@ export default function App() {
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/companies" element={<Navigate to="/settings" replace />} />
           <Route path="/visas/active" element={<VisaListActivePage />} />
-          <Route path="/visas/archive" element={<VisaListArchivePage />} />
+          <Route path="/visas/archive" element={<Navigate to="/visas/active" replace />} />
           <Route
             path="/visas/new"
             element={<EntryForm defaultMode="visaOnly" />}

@@ -137,18 +137,15 @@ export function VisaDetail() {
       setError(dErr.message);
       return;
     }
-    navigate(
-      visa?.status === "In-Progress" ? "/visas/active" : "/visas/archive"
-    );
+    navigate("/visas/active");
   }
 
-  const listPath =
-    visa && visa.status !== "In-Progress" ? "/visas/archive" : "/visas/active";
+  const listPath = "/visas/active";
 
   usePageHeader({
     title: visa?.customers?.full_name ?? "Visa",
     backTo: listPath,
-    backLabel: listPath === "/visas/archive" ? "Archive" : "Active visas",
+    backLabel: "Arrived",
   });
 
   if (!id) return null;
@@ -231,7 +228,7 @@ export function VisaDetail() {
 
       {visa.status === "In-Progress" && !landed ? (
         <p className="callout-warn">
-          Visa is ready, but this customer has not landed yet. Add{" "}
+          Visa is ready, but this customer is still waiting. Add{" "}
           <span className="font-medium">Date entered</span> when they arrive.
         </p>
       ) : null}
@@ -306,6 +303,12 @@ export function VisaDetail() {
               Route
             </dt>
             <dd className="mt-1 text-ink">{visa.route || "—"}</dd>
+          </div>
+          <div>
+            <dt className="meta">
+              Exit Route
+            </dt>
+            <dd className="mt-1 text-ink">{visa.exit_route || "—"}</dd>
           </div>
           <div>
             <dt className="meta">

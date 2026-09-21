@@ -96,20 +96,15 @@ function PassportVisaKpis({
           to={kpiPath("/customers", { company: companyId })}
         />
         <KpiCard
-          label="Active visas"
+          label="Arrived"
           value={kpis.activeVisas}
           to={kpiPath("/visas/active", { landed: "yes", company: companyId })}
         />
         <KpiCard
-          label="Not landed"
+          label="Waiting"
           value={kpis.notLanded}
           tone="yellow"
           to={kpiPath("/visas/active", { landed: "no", company: companyId })}
-        />
-        <KpiCard
-          label="Archived visas"
-          value={kpis.archivedVisas}
-          to={kpiPath("/visas/archive", { company: companyId })}
         />
       </MetricSection>
 
@@ -127,7 +122,7 @@ function PassportVisaKpis({
 
       <MetricSection
         title="Visa"
-        hint="Active visas with extension due today through the next 10 days."
+        hint="Arrived visas with extension due today through the next 10 days."
       >
         <KpiCard
           label="Due ≤10d"
@@ -403,9 +398,8 @@ export function Dashboard() {
                     <tr>
                       <th className="px-3 py-2.5">Company</th>
                       <th className="px-3 py-2.5 text-right">Customers</th>
-                      <th className="px-3 py-2.5 text-right">Active</th>
-                      <th className="px-3 py-2.5 text-right">Not landed</th>
-                      <th className="px-3 py-2.5 text-right">Archive</th>
+                      <th className="px-3 py-2.5 text-right">Arrived</th>
+                      <th className="px-3 py-2.5 text-right">Waiting</th>
                       <th className="px-3 py-2.5 text-right">Pass. &lt;7 mo</th>
                       <th className="px-3 py-2.5 text-right">Ext. ≤10d</th>
                     </tr>
@@ -439,9 +433,6 @@ export function Dashboard() {
                         </td>
                         <td className="px-3 py-2.5 text-right tabular-nums text-ink-soft">
                           {row.notLanded}
-                        </td>
-                        <td className="px-3 py-2.5 text-right tabular-nums text-ink-soft">
-                          {row.archivedVisas}
                         </td>
                         <td className="px-3 py-2.5 text-right tabular-nums text-ink-soft">
                           {row.expired}

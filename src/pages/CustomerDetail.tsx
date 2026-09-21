@@ -633,7 +633,7 @@ export function CustomerDetail() {
                         <p className="text-sm text-muted">
                           {v.date_entered
                             ? `Entered ${formatDisplayDate(v.date_entered)}`
-                            : "Not landed"}
+                            : "Waiting"}
                           {v.date_to_extension
                             ? ` · Extension ${formatDisplayDate(v.date_to_extension)}`
                             : ""}

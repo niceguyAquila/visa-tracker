@@ -286,7 +286,7 @@ function VisaList({ mode }: VisaListProps) {
   const [filtersOpen, setFiltersOpen] = useState(false);
 
   usePageHeader({
-    title: mode === "active" ? "Visa List — Active" : "Visa List — Archive",
+    title: mode === "active" ? "Arrived" : "Visa List — Archive",
   });
 
   const extraFiltersActive = Boolean(
@@ -629,8 +629,8 @@ function VisaList({ mode }: VisaListProps) {
                 }
               >
                 <option value="all">All In-Progress</option>
-                <option value="yes">Landed</option>
-                <option value="no">Not landed</option>
+                <option value="yes">Arrived</option>
+                <option value="no">Waiting</option>
               </select>
             </label>
           )}
@@ -669,7 +669,7 @@ function VisaList({ mode }: VisaListProps) {
             </>
           ) : (
             <>
-              No {mode === "active" ? "active" : "archived"} visas yet.{" "}
+              No {mode === "active" ? "" : "archived "}visas yet.{" "}
               <Link
                 to="/visas/new"
                 className="link-brand"
@@ -871,7 +871,7 @@ function VisaList({ mode }: VisaListProps) {
                         <td className="whitespace-nowrap border-t border-line/80 px-3 py-2 tabular-nums text-ink-soft">
                           {formatOptionalDisplayDate(
                             v.date_entered,
-                            "Not landed"
+                            "Waiting"
                           )}
                         </td>
                         <td

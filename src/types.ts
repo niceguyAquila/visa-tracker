@@ -77,6 +77,7 @@ export type Visa = {
   blacklist: boolean;
   status: VisaStatus;
   route: string;
+  exit_route: string;
   created_at: string;
 };
 

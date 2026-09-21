@@ -14,7 +14,7 @@ export const DEFAULT_ENTRY_PORTS = [
 
 export function mergeEntryPortOptions(
   custom: string[],
-  current = ""
+  ...currents: string[]
 ): string[] {
   const seen = new Set<string>();
   const out: string[] = [];
@@ -28,7 +28,7 @@ export function mergeEntryPortOptions(
   };
   for (const port of DEFAULT_ENTRY_PORTS) push(port);
   for (const port of custom) push(port);
-  push(current);
+  for (const port of currents) push(port);
   return out;
 }
 
