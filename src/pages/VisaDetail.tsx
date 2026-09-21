@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { CompanyChip } from "../components/CompanyChip";
+import { VisaRouteDisplay } from "../components/VisaRoute";
 import { VisaTimeline } from "../components/VisaTimeline";
 import { VisaQuickEdit } from "../components/VisaQuickEdit";
 import { usePageHeader } from "../context/PageHeaderContext";
@@ -298,17 +299,14 @@ export function VisaDetail() {
               )}
             </dd>
           </div>
-          <div>
-            <dt className="meta">
-              Route
-            </dt>
-            <dd className="mt-1 text-ink">{visa.route || "—"}</dd>
-          </div>
-          <div>
-            <dt className="meta">
-              Exit Route
-            </dt>
-            <dd className="mt-1 text-ink">{visa.exit_route || "—"}</dd>
+          <div className="sm:col-span-2">
+            <dt className="meta">Route</dt>
+            <dd className="mt-2">
+              <VisaRouteDisplay
+                route={visa.route}
+                exitRoute={visa.exit_route}
+              />
+            </dd>
           </div>
           <div>
             <dt className="meta">

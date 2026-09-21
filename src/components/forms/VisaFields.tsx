@@ -1,5 +1,4 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { Link } from "react-router-dom";
 import { formatDisplayDate } from "../../lib/dates";
 import {
   computeDateToExtension,
@@ -9,6 +8,7 @@ import {
   mergeEntryPortOptions,
   VISA_DAYS_OPTIONS,
 } from "../../lib/visa";
+import { VisaRouteFields } from "../VisaRoute";
 import type { VisaDays } from "../../types";
 import {
   FieldError,
@@ -134,46 +134,13 @@ export function VisaFields({
         </label>
       </div>
 
-      <div>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <label className="block">
-            <FieldLabel>Route</FieldLabel>
-            <select
-              value={routeValue}
-              onChange={(e) => onChange({ route: e.target.value })}
-              className={inputClass}
-            >
-              <option value="">Select…</option>
-              {portOptions.map((port) => (
-                <option key={port} value={port}>
-                  {port}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="block">
-            <FieldLabel>Exit Route</FieldLabel>
-            <select
-              value={exitRouteValue}
-              onChange={(e) => onChange({ exitRoute: e.target.value })}
-              className={inputClass}
-            >
-              <option value="">Select…</option>
-              {portOptions.map((port) => (
-                <option key={port} value={port}>
-                  {port}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-        <p className="mt-1 text-xs text-muted">
-          Need another?{" "}
-          <Link to="/settings#ports" className="link-brand">
-            Manage ports
-          </Link>
-        </p>
-      </div>
+      <VisaRouteFields
+        route={routeValue}
+        exitRoute={exitRouteValue}
+        portOptions={portOptions}
+        onRouteChange={(next) => onChange({ route: next })}
+        onExitRouteChange={(next) => onChange({ exitRoute: next })}
+      />
 
       <div className="rounded-lg border border-line bg-paper px-3 py-3">
         <p className="meta">

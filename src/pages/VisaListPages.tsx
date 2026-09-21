@@ -19,6 +19,7 @@ import {
 import {
   ARCHIVE_STATUSES,
   deriveLeavePhase,
+  formatVisaRoute,
   isVisaLanded,
   leavePhaseLabel,
 } from "../lib/visa";
@@ -859,8 +860,8 @@ function VisaList({ mode }: VisaListProps) {
                         <td className="whitespace-nowrap border-t border-line/80 px-3 py-2 font-mono text-xs text-ink-soft">
                           {v.passports?.passport_number ?? "—"}
                         </td>
-                        <td className="max-w-[9rem] truncate border-t border-line/80 px-3 py-2 text-ink-soft">
-                          {v.route || "—"}
+                        <td className="max-w-[12rem] truncate border-t border-line/80 px-3 py-2 text-ink-soft">
+                          {formatVisaRoute(v.route, v.exit_route)}
                         </td>
                         <td className="max-w-[9rem] truncate border-t border-line/80 px-3 py-2 text-ink-soft">
                           {v.customers?.companies?.name ?? "—"}

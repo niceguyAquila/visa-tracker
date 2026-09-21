@@ -32,6 +32,18 @@ export function mergeEntryPortOptions(
   return out;
 }
 
+export function formatVisaRoute(
+  route?: string | null,
+  exitRoute?: string | null
+): string {
+  const from = route?.trim() ?? "";
+  const to = exitRoute?.trim() ?? "";
+  if (from && to) return `${from} → ${to}`;
+  if (from) return from;
+  if (to) return `→ ${to}`;
+  return "—";
+}
+
 export function existingEntryPort(
   name: string,
   options: string[]
