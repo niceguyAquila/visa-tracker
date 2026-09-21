@@ -1,5 +1,5 @@
 import * as XLSX from "xlsx";
-import { currentPassport, CUSTOMER_LIST_SELECT } from "./customer";
+import { currentPassport, CUSTOMER_LIST_SELECT, DEFAULT_CUSTOMER_STATUS } from "./customer";
 import { todayISODate } from "./dates";
 import { EVISA_EMBED, embedOne } from "./evisa";
 import { supabase } from "./supabase";
@@ -101,6 +101,7 @@ export async function downloadCustomerVisaReport(
   const customerHeaders = [
     "Company",
     "Full name",
+    "Status",
     "Phone",
     "Current passport",
     "Passport expiry",
@@ -118,6 +119,7 @@ export async function downloadCustomerVisaReport(
     return [
       cell(c.companies?.name),
       cell(c.full_name),
+      cell(c.status ?? DEFAULT_CUSTOMER_STATUS),
       cell(c.contact_number),
       cell(current?.passport_number),
       cell(current?.passport_expiry),

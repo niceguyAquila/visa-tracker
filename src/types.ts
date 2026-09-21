@@ -28,6 +28,8 @@ export type Passport = {
   created_at: string;
 };
 
+export type CustomerStatus = "Working" | "Currently Not Working";
+
 export type Customer = {
   id: string;
   org_id: string;
@@ -36,6 +38,7 @@ export type Customer = {
   visa_count: number;
   extension_count: number;
   contact_number: string;
+  status: CustomerStatus;
   created_at: string;
 };
 

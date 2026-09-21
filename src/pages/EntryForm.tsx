@@ -17,6 +17,7 @@ import { VisaStatusFields } from "../components/forms/VisaStatusFields";
 import {
   currentPassport,
   CUSTOMER_LIST_SELECT,
+  DEFAULT_CUSTOMER_STATUS,
   friendlyPassportConflict,
   namesMatch,
 } from "../lib/customer";
@@ -65,6 +66,7 @@ const emptyPerson = (): PersonFieldsValue => ({
   extensionCount: 0,
   dialCode: DEFAULT_DIAL.code,
   localNumber: "",
+  status: DEFAULT_CUSTOMER_STATUS,
 });
 
 const emptyVisa = (): VisaFieldsValue => ({
@@ -419,6 +421,7 @@ export function EntryForm({ defaultMode }: EntryFormProps) {
       extension_count: Math.max(0, Math.floor(Number(person.extensionCount)) || 0),
       contact_number: composePhone(person.dialCode, person.localNumber),
       company_id: person.companyId,
+      status: person.status ?? DEFAULT_CUSTOMER_STATUS,
     };
 
     const { data, error: iErr } = await supabase

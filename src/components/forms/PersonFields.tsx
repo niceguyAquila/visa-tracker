@@ -1,7 +1,12 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { PhoneInput } from "../PhoneInput";
-import type { Company } from "../../types";
+import {
+  CUSTOMER_STATUS_OPTIONS,
+  DEFAULT_CUSTOMER_STATUS,
+} from "../../lib/customer";
+import { customerStatusSegmentActiveClass } from "../../lib/ui";
+import type { Company, CustomerStatus } from "../../types";
 import {
   FieldError,
   FieldLabel,
@@ -18,6 +23,7 @@ export type PersonFieldsValue = {
   extensionCount: number;
   dialCode: string;
   localNumber: string;
+  status: CustomerStatus;
 };
 
 export type PersonFieldErrors = Partial<
@@ -125,6 +131,41 @@ export function PersonFields({
             onLocalNumberChange={(localNumber) => onChange({ localNumber })}
           />
           <FieldError message={errors.localNumber} />
+        </div>
+
+        <div>
+          <FieldLabel>Status</FieldLabel>
+          <div
+            role="radiogroup"
+            aria-label="Customer status"
+            className="mt-1 flex flex-col gap-1 rounded-lg border border-line bg-paper p-1 sm:flex-row"
+          >
+            {CUSTOMER_STATUS_OPTIONS.map((opt) => {
+              const active = (value.status ?? DEFAULT_CUSTOMER_STATUS) === opt;
+              const base =
+                "flex-1 rounded-md px-2 py-2 text-center text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/30";
+              return (
+                <button
+                  key={opt}
+                  type="button"
+                  role="radio"
+                  aria-checked={active}
+                  onClick={() => onChange({ status: opt })}
+                  className={
+                    active
+                      ? `${base} ${customerStatusSegmentActiveClass(opt)}`
+                      : `${base} text-muted hover:bg-surface hover:text-ink`
+                  }
+                >
+                  {opt}
+                </button>
+              );
+            })}
+          </div>
+          <p className="mt-1 text-xs text-muted">
+            Currently Not Working people stay in the list, but are not counted
+            in Dashboard Customers.
+          </p>
         </div>
       </div>
 

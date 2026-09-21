@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { CompanyChip } from "../components/CompanyChip";
+import { CustomerStatusBadge } from "../components/CustomerStatusBadge";
 import {
   currentPassport,
   CUSTOMER_LIST_SELECT,
@@ -278,6 +279,7 @@ export function CustomerDuplicatesPage() {
                               <p className="font-medium text-ink">
                                 {selected ? "Keep this customer" : "Merge into selected"}
                               </p>
+                              <CustomerStatusBadge status={c.status} />
                               <p className="text-xs text-muted">
                                 {c.visa_count} visa count · {c.extension_count} extensions
                                 {(inProgress[c.id] ?? 0) > 0

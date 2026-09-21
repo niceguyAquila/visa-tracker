@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { CompanyChip } from "../components/CompanyChip";
+import { CustomerStatusBadge } from "../components/CustomerStatusBadge";
 import {
   FieldError,
   FieldLabel,
@@ -284,7 +285,8 @@ export function CustomerDetail() {
         <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h1 className="page-title">{customer.full_name}</h1>
-            <div className="mt-1">
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <CustomerStatusBadge status={customer.status} always />
               {customer.companies ? (
                 <CompanyChip
                   name={customer.companies.name}

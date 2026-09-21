@@ -1,5 +1,5 @@
 import type { LeavePhase } from "./visa";
-import type { VisaStatus } from "../types";
+import type { CustomerStatus, VisaStatus } from "../types";
 
 export function urgencyClass(days: number): string {
   if (days < 0) return "bg-urgent-soft text-urgent-ink";
@@ -14,6 +14,18 @@ export function urgencyCellClass(days: number): string {
   if (days <= 10) return "text-warn-ink";
   if (days <= 30) return "text-watch-ink";
   return "text-ink-soft";
+}
+
+export function customerStatusBadgeClass(status: CustomerStatus): string {
+  if (status === "Currently Not Working") return "bg-cuti-soft text-cuti-ink";
+  return "bg-brand-soft text-brand-ink";
+}
+
+export function customerStatusSegmentActiveClass(status: CustomerStatus): string {
+  if (status === "Currently Not Working") {
+    return "bg-cuti-soft text-cuti-ink shadow-sm";
+  }
+  return "bg-surface text-brand-ink shadow-sm";
 }
 
 export function statusBadgeClass(status: VisaStatus): string {

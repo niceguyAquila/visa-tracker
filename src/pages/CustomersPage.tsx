@@ -2,20 +2,24 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { AddFab } from "../components/AddFab";
 import { CompanyChip } from "../components/CompanyChip";
+import { CustomerStatusBadge } from "../components/CustomerStatusBadge";
 import { ExportReportButton } from "../components/ExportReportButton";
 import {
   currentPassport,
   CUSTOMER_LIST_SELECT,
+  CUSTOMER_STATUS_OPTIONS,
+  DEFAULT_CUSTOMER_STATUS,
   unresolvedDuplicateGroups,
 } from "../lib/customer";
 import { supabase } from "../lib/supabase";
 import { daysUntilISODate, formatDisplayDate, isBeforeMonths } from "../lib/dates";
 import { urgencyClass } from "../lib/ui";
-import type { CustomerWithCompany, DuplicateExclusion } from "../types";
+import type { CustomerStatus, CustomerWithCompany, DuplicateExclusion } from "../types";
 
 const inputClass = "input-field text-sm";
 
 type ExpiryFilter = "all" | "expired" | "7m" | "10" | "30" | "ok";
+type StatusFilter = "all" | CustomerStatus;
 
 function parseISODateNum(s: string): number {
   const [y, m, d] = s.split("-").map(Number);
@@ -32,6 +36,11 @@ function parseExpiryFilter(value: string | null): ExpiryFilter {
   ) {
     return value;
   }
+  return "all";
+}
+
+function parseStatusFilter(value: string | null): StatusFilter {
+  if (value === "Working" || value === "Currently Not Working") return value;
   return "all";
 }
 
@@ -75,6 +84,7 @@ export function CustomersPage() {
   const query = searchParams.get("q") ?? "";
   const companyId = searchParams.get("company") ?? "";
   const expiry = parseExpiryFilter(searchParams.get("expiry"));
+  const status = parseStatusFilter(searchParams.get("status"));
 
   const [rows, setRows] = useState<CustomerWithCompany[]>([]);
   const [exclusions, setExclusions] = useState<DuplicateExclusion[]>([]);
@@ -133,13 +143,18 @@ export function CustomersPage() {
     [rows, exclusions]
   );
 
-  const filtersActive = Boolean(query.trim() || companyId || expiry !== "all");
+  const filtersActive = Boolean(
+    query.trim() || companyId || expiry !== "all" || status !== "all"
+  );
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return [...rows]
       .filter((c) => {
         if (companyId && c.company_id !== companyId) return false;
+        if (status !== "all" && (c.status ?? DEFAULT_CUSTOMER_STATUS) !== status) {
+          return false;
+        }
         if (!matchesQuery(c, q)) return false;
         const current = currentPassport(c.passports);
         return matchesExpiry(current?.passport_expiry ?? null, expiry);
@@ -151,7 +166,7 @@ export function CustomersPage() {
         const bN = bP ? parseISODateNum(bP.passport_expiry) : Number.MAX_SAFE_INTEGER;
         return aN - bN;
       });
-  }, [rows, query, companyId, expiry]);
+  }, [rows, query, companyId, expiry, status]);
 
   function updateParams(updates: Record<string, string>) {
     const next = new URLSearchParams(searchParams);
@@ -232,7 +247,7 @@ export function CustomersPage() {
                 onChange={(e) => updateParams({ q: e.target.value })}
               />
             </label>
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-3 sm:grid-cols-3">
               <label className="block text-sm">
                 <span className="mb-1 block font-medium text-ink-soft">Company</span>
                 <select
@@ -267,6 +282,25 @@ export function CustomersPage() {
                   <option value="10">Expiring ≤10 days</option>
                   <option value="30">Expiring ≤30 days</option>
                   <option value="ok">More than 30 days</option>
+                </select>
+              </label>
+              <label className="block text-sm">
+                <span className="mb-1 block font-medium text-ink-soft">Status</span>
+                <select
+                  className={inputClass}
+                  value={status}
+                  onChange={(e) =>
+                    updateParams({
+                      status: e.target.value === "all" ? "" : e.target.value,
+                    })
+                  }
+                >
+                  <option value="all">All</option>
+                  {CUSTOMER_STATUS_OPTIONS.map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
+                  ))}
                 </select>
               </label>
             </div>
@@ -315,9 +349,10 @@ export function CustomersPage() {
                     >
                       <div className="space-y-2">
                         <div className="flex items-start justify-between gap-3">
-                          <p className="min-w-0 font-medium text-ink">
-                            {c.full_name}
-                          </p>
+                          <div className="flex min-w-0 flex-wrap items-center gap-2">
+                            <p className="font-medium text-ink">{c.full_name}</p>
+                            <CustomerStatusBadge status={c.status} />
+                          </div>
                           <p className="shrink-0 text-right text-sm text-muted">
                             {c.companies ? (
                               <CompanyChip

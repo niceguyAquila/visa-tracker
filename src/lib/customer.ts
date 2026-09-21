@@ -1,7 +1,25 @@
-import type { CustomerWithCompany, DuplicateExclusion, Passport } from "../types";
+import type {
+  CustomerStatus,
+  CustomerWithCompany,
+  DuplicateExclusion,
+  Passport,
+} from "../types";
 
 export const CUSTOMER_LIST_SELECT =
   "*, companies ( id, name, color ), passports ( id, org_id, customer_id, passport_number, passport_expiry, is_current, created_at )";
+
+export const CUSTOMER_STATUS_OPTIONS: CustomerStatus[] = [
+  "Working",
+  "Currently Not Working",
+];
+
+export const DEFAULT_CUSTOMER_STATUS: CustomerStatus = "Working";
+
+export function isWorkingCustomer(customer: {
+  status?: CustomerStatus | null;
+}): boolean {
+  return customer.status !== "Currently Not Working";
+}
 
 export function normalizePersonName(name: string): string {
   return name.trim().replace(/\s+/g, " ").toLowerCase();

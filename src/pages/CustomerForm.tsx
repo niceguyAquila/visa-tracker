@@ -4,6 +4,7 @@ import {
   PersonFields,
   type PersonFieldsValue,
 } from "../components/forms/PersonFields";
+import { DEFAULT_CUSTOMER_STATUS } from "../lib/customer";
 import { getDefaultOrgId } from "../lib/org";
 import {
   composePhone,
@@ -29,6 +30,7 @@ export function CustomerForm() {
     extensionCount: 0,
     dialCode: DEFAULT_DIAL.code,
     localNumber: "",
+    status: DEFAULT_CUSTOMER_STATUS,
   });
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -87,6 +89,7 @@ export function CustomerForm() {
         extensionCount: customer.extension_count,
         dialCode: parsed.dialCode,
         localNumber: parsed.local,
+        status: customer.status ?? DEFAULT_CUSTOMER_STATUS,
       });
       setLoading(false);
     })();
@@ -123,6 +126,7 @@ export function CustomerForm() {
         ),
         contact_number: composePhone(person.dialCode, person.localNumber),
         company_id: person.companyId,
+        status: person.status,
       })
       .eq("id", id);
 

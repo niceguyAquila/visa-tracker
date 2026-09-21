@@ -1,6 +1,12 @@
-import { currentPassport } from "./customer";
+import { currentPassport, isWorkingCustomer } from "./customer";
 import { daysUntilISODate, isBeforeMonths } from "./dates";
-import type { Company, CustomerWithCompany, Passport, VisaStatus } from "../types";
+import type {
+  Company,
+  CustomerStatus,
+  CustomerWithCompany,
+  Passport,
+  VisaStatus,
+} from "../types";
 
 export type Kpis = {
   customers: number;
@@ -44,6 +50,7 @@ export type CustomerForMetrics = Pick<
   CustomerWithCompany,
   "company_id" | "visa_count" | "extension_count"
 > & {
+  status?: CustomerStatus | null;
   passports?: Passport[];
 };
 
@@ -96,7 +103,10 @@ export function aggregateKpis(
   companyCount: number,
   visas: VisaForMetrics[] = []
 ): Kpis {
-  const kpis = emptyKpis(companyCount, customers.length);
+  const kpis = emptyKpis(
+    companyCount,
+    customers.filter(isWorkingCustomer).length
+  );
   addPassportKpis(kpis, customers);
   addVisaKpis(kpis, visas);
   return kpis;

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { CompanySwatch } from "../components/CompanyChip";
+import { CustomerStatusBadge } from "../components/CustomerStatusBadge";
 import { ExportReportButton } from "../components/ExportReportButton";
 import { daysUntilISODate, formatDisplayDate } from "../lib/dates";
 import {
@@ -369,7 +370,10 @@ export function Dashboard() {
                       <li key={c.id}>
                         <Link to={`/customers/${c.id}`} className="list-card">
                           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                            <p className="font-medium text-ink">{c.full_name}</p>
+                            <div className="flex min-w-0 flex-wrap items-center gap-2">
+                              <p className="font-medium text-ink">{c.full_name}</p>
+                              <CustomerStatusBadge status={c.status} />
+                            </div>
                             {current && d !== null ? (
                               <div
                                 className={`inline-flex flex-col rounded-lg px-3 py-2 text-sm sm:items-end ${urgencyClass(d)}`}
