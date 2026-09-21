@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { EVisaFields } from "../components/forms/EVisaFields";
 import { PassportSelect } from "../components/forms/PassportSelect";
 import { FieldLabel, FormSection, SectionHeading } from "../components/forms/formStyles";
+import { usePageHeader } from "../context/PageHeaderContext";
 import { CUSTOMER_LIST_SELECT } from "../lib/customer";
 import {
   embedOne,
@@ -310,6 +311,11 @@ export function EVisaForm() {
     }
   }
 
+  usePageHeader({
+    title: existing ? "Edit e-visa" : "Add e-visa",
+    backTo: `/visas/${id}`,
+  });
+
   if (!id) return null;
 
   if (loading) {
@@ -327,7 +333,6 @@ export function EVisaForm() {
     );
   }
 
-  const title = existing ? "Edit e-visa" : "Add e-visa";
   const saveLabel =
     saveStatus === "uploading"
       ? "Uploading PDF…"
@@ -337,16 +342,6 @@ export function EVisaForm() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <Link to={`/visas/${id}`} className="link-brand text-sm">
-          ← Back
-        </Link>
-        <h1 className="page-title mt-2">{title}</h1>
-        {customer ? (
-          <p className="mt-1 text-sm text-muted">{customer.full_name}</p>
-        ) : null}
-      </div>
-
       <form
         onSubmit={onSubmit}
         className="panel space-y-5 p-5 sm:p-6"

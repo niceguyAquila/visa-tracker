@@ -27,6 +27,46 @@ export function FieldError({ message }: { message?: string }) {
   return <p className="mt-1 text-xs text-red-700">{message}</p>;
 }
 
+export function SwitchField({
+  label,
+  checked,
+  onChange,
+}: {
+  label: string;
+  checked: boolean;
+  onChange: (next: boolean) => void;
+}) {
+  return (
+    <div className="block">
+      <FieldLabel>{label}</FieldLabel>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        onClick={() => onChange(!checked)}
+        className={`mt-1 flex h-[42px] w-full items-center justify-between rounded-lg border px-3 text-sm font-medium transition ${
+          checked
+            ? "border-success-ink/20 bg-success-soft text-success-ink"
+            : "border-line bg-surface text-ink-soft hover:bg-paper"
+        }`}
+      >
+        <span>{checked ? "Yes" : "No"}</span>
+        <span
+          className={`relative inline-flex h-6 w-11 shrink-0 rounded-full transition ${
+            checked ? "bg-brand" : "bg-line-strong"
+          }`}
+        >
+          <span
+            className={`absolute top-0.5 left-0.5 size-5 rounded-full bg-white shadow transition ${
+              checked ? "translate-x-5" : "translate-x-0"
+            }`}
+          />
+        </span>
+      </button>
+    </div>
+  );
+}
+
 export function SectionHeading({
   step,
   title,

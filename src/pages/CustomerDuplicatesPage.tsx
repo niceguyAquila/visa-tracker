@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { CompanyChip } from "../components/CompanyChip";
 import { CustomerStatusBadge } from "../components/CustomerStatusBadge";
+import { usePageHeader } from "../context/PageHeaderContext";
 import {
   currentPassport,
   CUSTOMER_LIST_SELECT,
@@ -17,6 +18,12 @@ import type { CustomerWithCompany, DuplicateExclusion } from "../types";
 type InProgressMap = Record<string, number>;
 
 export function CustomerDuplicatesPage() {
+  usePageHeader({
+    title: "Possible duplicates",
+    backTo: "/customers",
+    backLabel: "Customers",
+  });
+
   const navigate = useNavigate();
   const [rows, setRows] = useState<CustomerWithCompany[]>([]);
   const [exclusions, setExclusions] = useState<DuplicateExclusion[]>([]);
@@ -173,17 +180,6 @@ export function CustomerDuplicatesPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <Link to="/customers" className="link-brand text-sm">
-          ← Customers
-        </Link>
-        <h1 className="page-title mt-2">Possible duplicates</h1>
-        <p className="page-sub mt-1">
-          Same name and company, different passports. Merge renewals, or mark
-          people who just share a name as distinct.
-        </p>
-      </div>
-
       {loading ? (
         <p className="text-muted">Loading…</p>
       ) : error ? (

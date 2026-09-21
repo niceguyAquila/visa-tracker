@@ -4,6 +4,7 @@ import { AddFab } from "../components/AddFab";
 import { CompanyChip } from "../components/CompanyChip";
 import { CustomerStatusBadge } from "../components/CustomerStatusBadge";
 import { ExportReportButton } from "../components/ExportReportButton";
+import { usePageHeader } from "../context/PageHeaderContext";
 import {
   currentPassport,
   CUSTOMER_LIST_SELECT,
@@ -80,6 +81,8 @@ function matchesExpiry(
 }
 
 export function CustomersPage() {
+  usePageHeader({ title: "Customers" });
+
   const [searchParams, setSearchParams] = useSearchParams();
   const query = searchParams.get("q") ?? "";
   const companyId = searchParams.get("company") ?? "";
@@ -183,13 +186,7 @@ export function CustomersPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="page-title">Customers</h1>
-          <p className="page-sub">
-            Track passport expiry dates by company.
-          </p>
-        </div>
+      <div className="flex justify-end">
         <ExportReportButton
           companyId={companyId || null}
           companyName={companies.find((c) => c.id === companyId)?.name}

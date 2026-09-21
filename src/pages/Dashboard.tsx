@@ -3,6 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { CompanySwatch } from "../components/CompanyChip";
 import { CustomerStatusBadge } from "../components/CustomerStatusBadge";
 import { ExportReportButton } from "../components/ExportReportButton";
+import { usePageHeader } from "../context/PageHeaderContext";
 import { daysUntilISODate, formatDisplayDate } from "../lib/dates";
 import {
   aggregateKpis,
@@ -164,6 +165,8 @@ function companyIdFromEmbedded(
 }
 
 export function Dashboard() {
+  usePageHeader({ title: "Dashboard" });
+
   const [searchParams, setSearchParams] = useSearchParams();
   const companyParam = searchParams.get("company");
 
@@ -285,39 +288,29 @@ export function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="page-title">Dashboard</h1>
-          <p className="page-sub">
-            {focusedCompany
-              ? `Metrics for ${focusedCompany.name}`
-              : "Metrics across all companies."}
-          </p>
-        </div>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
-          <ExportReportButton
-            companyId={focusedId}
-            companyName={focusedCompany?.name}
-            disabled={loading || customers.length === 0}
-          />
-          {companies.length > 0 ? (
-            <label className="block text-sm sm:min-w-56">
-              <span className="mb-1 block font-medium text-ink-soft">Company</span>
-              <select
-                className="input-field text-sm"
-                value={focusedId ?? ""}
-                onChange={(e) => setFocusedCompany(e.target.value || null)}
-              >
-                <option value="">All companies</option>
-                {companies.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-          ) : null}
-        </div>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-end">
+        <ExportReportButton
+          companyId={focusedId}
+          companyName={focusedCompany?.name}
+          disabled={loading || customers.length === 0}
+        />
+        {companies.length > 0 ? (
+          <label className="block text-sm sm:min-w-56">
+            <span className="mb-1 block font-medium text-ink-soft">Company</span>
+            <select
+              className="input-field text-sm"
+              value={focusedId ?? ""}
+              onChange={(e) => setFocusedCompany(e.target.value || null)}
+            >
+              <option value="">All companies</option>
+              {companies.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
       </div>
 
       {loading ? (

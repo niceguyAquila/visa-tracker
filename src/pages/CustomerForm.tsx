@@ -4,6 +4,7 @@ import {
   PersonFields,
   type PersonFieldsValue,
 } from "../components/forms/PersonFields";
+import { usePageHeader } from "../context/PageHeaderContext";
 import { DEFAULT_CUSTOMER_STATUS } from "../lib/customer";
 import { getDefaultOrgId } from "../lib/org";
 import {
@@ -18,6 +19,11 @@ import type { Company, Customer } from "../types";
 export function CustomerForm() {
   const { id } = useParams();
   const navigate = useNavigate();
+
+  usePageHeader({
+    title: "Edit customer",
+    backTo: id ? `/customers/${id}` : "/customers",
+  });
 
   const [orgId, setOrgId] = useState<string | null>(null);
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -144,21 +150,6 @@ export function CustomerForm() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <Link
-          to={id ? `/customers/${id}` : "/customers"}
-          className="link-brand text-sm"
-        >
-          ← Back
-        </Link>
-        <h1 className="page-title mt-2">
-          Edit customer
-        </h1>
-        <p className="page-sub mt-1">
-          Passports are managed on the customer page.
-        </p>
-      </div>
-
       <form
         onSubmit={onSubmit}
         className="panel space-y-5 p-5 sm:p-6"

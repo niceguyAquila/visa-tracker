@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { CompanyChip } from "../components/CompanyChip";
 import { VisaTimeline } from "../components/VisaTimeline";
+import { VisaQuickEdit } from "../components/VisaQuickEdit";
+import { usePageHeader } from "../context/PageHeaderContext";
 import { formatDisplayDate, formatOptionalDisplayDate } from "../lib/dates";
 import { embedOne, EVISA_EMBED } from "../lib/evisa";
 import { removeEvisaPdf, signedEvisaUrl } from "../lib/evisaPdf";
@@ -26,6 +28,7 @@ export function VisaDetail() {
   const [visa, setVisa] = useState<VisaWithCustomer | null>(null);
   const [evisa, setEvisa] = useState<EVisa | null>(null);
   const [evisaOpen, setEvisaOpen] = useState(false);
+  const [quickEditOpen, setQuickEditOpen] = useState(false);
   const [pdfOpen, setPdfOpen] = useState(false);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [pdfLoading, setPdfLoading] = useState(false);
@@ -139,6 +142,15 @@ export function VisaDetail() {
     );
   }
 
+  const listPath =
+    visa && visa.status !== "In-Progress" ? "/visas/archive" : "/visas/active";
+
+  usePageHeader({
+    title: visa?.customers?.full_name ?? "Visa",
+    backTo: listPath,
+    backLabel: listPath === "/visas/archive" ? "Archive" : "Active visas",
+  });
+
   if (!id) return null;
 
   if (loading) {
@@ -159,8 +171,6 @@ export function VisaDetail() {
     );
   }
 
-  const listPath =
-    visa.status === "In-Progress" ? "/visas/active" : "/visas/archive";
   const landed = isVisaLanded(visa.date_entered);
   const leavePhase = deriveLeavePhase(visa.actual_leave_date);
 
@@ -171,59 +181,48 @@ export function VisaDetail() {
           {flashSuccess}
         </p>
       ) : null}
-      <div className="panel space-y-3 p-4 sm:p-5">
-        <div className="flex items-center justify-between gap-3">
-          <Link to={listPath} className="link-brand min-w-0 truncate text-sm">
-            ← {visa.status === "In-Progress" ? "Active visas" : "Archive"}
-          </Link>
-          <div className="flex shrink-0 gap-2">
-            <Link to={`/visas/${id}/edit`} className="btn-ghost px-3 py-1.5">
-              Edit
-            </Link>
-            <button
-              type="button"
-              onClick={() => void removeVisa()}
-              className="btn-danger px-3 py-1.5"
-            >
-              Delete
-            </button>
-          </div>
-        </div>
-
-        <div className="min-w-0">
-          <h1 className="page-title text-balance">
-            {visa.customers?.full_name ?? "Visa"}
-          </h1>
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            {visa.customers?.companies ? (
-              <CompanyChip
-                name={visa.customers.companies.name}
-                color={visa.customers.companies.color}
-              />
-            ) : (
-              <span className="text-sm text-muted">No company</span>
-            )}
-            <span className="text-sm text-ink-soft">{visa.visa_days}</span>
+      <div className="panel flex flex-col gap-3 p-4 sm:flex-row sm:items-start sm:justify-between sm:p-5">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          {visa.customers?.companies ? (
+            <CompanyChip
+              name={visa.customers.companies.name}
+              color={visa.customers.companies.color}
+            />
+          ) : (
+            <span className="text-sm text-muted">No company</span>
+          )}
+          <span className="text-sm text-ink-soft">{visa.visa_days}</span>
+          <span
+            className={`inline-flex rounded-md px-2.5 py-1 text-xs font-medium ${statusBadgeClass(visa.status)}`}
+          >
+            {visa.status}
+          </span>
+          {visa.status === "In-Progress" ? (
             <span
-              className={`inline-flex rounded-md px-2.5 py-1 text-xs font-medium ${statusBadgeClass(visa.status)}`}
+              className={`inline-flex rounded-md px-2.5 py-1 text-xs font-medium ${landedBadgeClass(landed)}`}
             >
-              {visa.status}
+              {landedLabel(landed)}
             </span>
-            {visa.status === "In-Progress" ? (
-              <span
-                className={`inline-flex rounded-md px-2.5 py-1 text-xs font-medium ${landedBadgeClass(landed)}`}
-              >
-                {landedLabel(landed)}
-              </span>
-            ) : null}
-            {leavePhase === "confirmed" ? (
-              <span
-                className={`inline-flex rounded-md px-2.5 py-1 text-xs font-medium ${leavePhaseBadgeClass(leavePhase)}`}
-              >
-                {leavePhaseLabel(leavePhase)}
-              </span>
-            ) : null}
-          </div>
+          ) : null}
+          {leavePhase === "confirmed" ? (
+            <span
+              className={`inline-flex rounded-md px-2.5 py-1 text-xs font-medium ${leavePhaseBadgeClass(leavePhase)}`}
+            >
+              {leavePhaseLabel(leavePhase)}
+            </span>
+          ) : null}
+        </div>
+        <div className="flex shrink-0 gap-2">
+          <Link to={`/visas/${id}/edit`} className="btn-ghost px-3 py-1.5">
+            Edit
+          </Link>
+          <button
+            type="button"
+            onClick={() => void removeVisa()}
+            className="btn-danger px-3 py-1.5"
+          >
+            Delete
+          </button>
         </div>
       </div>
 
@@ -237,7 +236,18 @@ export function VisaDetail() {
         </p>
       ) : null}
 
-      <VisaTimeline visa={visa} />
+      <VisaTimeline
+        visa={visa}
+        action={
+          <button
+            type="button"
+            className="btn-ghost px-3 py-1.5"
+            onClick={() => setQuickEditOpen(true)}
+          >
+            Quick edit
+          </button>
+        }
+      />
 
       <section className="panel p-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -316,6 +326,18 @@ export function VisaDetail() {
           </div>
         </dl>
       </section>
+
+      {quickEditOpen ? (
+        <VisaQuickEdit
+          visa={visa}
+          onClose={() => setQuickEditOpen(false)}
+          onSaved={(message) => {
+            setQuickEditOpen(false);
+            setFlashSuccess(message);
+            void load();
+          }}
+        />
+      ) : null}
 
       {evisaOpen ? (
         <div

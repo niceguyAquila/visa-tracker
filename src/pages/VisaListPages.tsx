@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { AddFab } from "../components/AddFab";
+import { usePageHeader } from "../context/PageHeaderContext";
 import {
   daysUntilISODate,
   formatDisplayDate,
@@ -284,11 +285,9 @@ function VisaList({ mode }: VisaListProps) {
   const [error, setError] = useState<string | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
 
-  const title = mode === "active" ? "Visa List — Active" : "Visa List — Archive";
-  const description =
-    mode === "active"
-      ? "In-Progress visas, including those that have not landed yet."
-      : "Cuti, Blacklist, and Finished visa sessions.";
+  usePageHeader({
+    title: mode === "active" ? "Visa List — Active" : "Visa List — Archive",
+  });
 
   const extraFiltersActive = Boolean(
     companyId ||
@@ -508,11 +507,6 @@ function VisaList({ mode }: VisaListProps) {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden">
-      <div className="shrink-0">
-        <h1 className="page-title">{title}</h1>
-        <p className="page-sub">{description}</p>
-      </div>
-
       <AddFab to="/visas/new" label="Add visa" storageKey="fab-visas" />
 
       <div className="filter-panel shrink-0">

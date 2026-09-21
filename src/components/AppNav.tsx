@@ -4,9 +4,9 @@ import type { SVGProps } from "react";
 const links = [
   { to: "/", label: "Dashboard", short: "Dash", end: true, icon: IconGrid },
   { to: "/customers", label: "Customers", short: "People", end: true, icon: IconPeople },
-  { to: "/settings", label: "Settings", short: "Setup", end: true, icon: IconSettings },
   { to: "/visas/active", label: "Visa Active", short: "Active", end: true, icon: IconStamp },
   { to: "/visas/archive", label: "Visa Archive", short: "Archive", end: true, icon: IconArchive },
+  { to: "/settings", label: "Settings", short: "Settings", end: true, icon: IconSettings },
 ] as const;
 
 function IconGrid(props: SVGProps<SVGSVGElement>) {

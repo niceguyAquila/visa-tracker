@@ -14,6 +14,7 @@ import {
   type VisaFieldsValue,
 } from "../components/forms/VisaFields";
 import { VisaStatusFields } from "../components/forms/VisaStatusFields";
+import { usePageHeader } from "../context/PageHeaderContext";
 import {
   currentPassport,
   CUSTOMER_LIST_SELECT,
@@ -94,6 +95,11 @@ type EntryFormProps = {
 export function EntryForm({ defaultMode }: EntryFormProps) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+
+  usePageHeader({
+    title: "New entry",
+    backTo: defaultMode === "visaOnly" ? "/visas/active" : "/customers",
+  });
 
   const [mode, setMode] = useState<EntryMode>(defaultMode);
   const [orgId, setOrgId] = useState<string | null>(null);
@@ -590,19 +596,6 @@ export function EntryForm({ defaultMode }: EntryFormProps) {
 
   return (
     <div className="space-y-6 pb-28">
-      <div>
-        <Link
-          to={backHref()}
-          className="link-brand text-sm"
-        >
-          ← Back
-        </Link>
-        <h1 className="page-title mt-2">New entry</h1>
-        <p className="page-sub mt-1">
-          Create a customer, a visa, or both.
-        </p>
-      </div>
-
       <form
         onSubmit={onSubmit}
         className="panel space-y-6 p-5 sm:p-6"

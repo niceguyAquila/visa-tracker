@@ -8,6 +8,7 @@ import {
   inputClass,
   inputErrorClass,
 } from "../components/forms/formStyles";
+import { usePageHeader } from "../context/PageHeaderContext";
 import {
   currentPassport,
   CUSTOMER_LIST_SELECT,
@@ -244,6 +245,12 @@ export function CustomerDetail() {
     await load();
   }
 
+  usePageHeader({
+    title: customer?.full_name ?? "Customer",
+    backTo: "/customers",
+    backLabel: "Customers",
+  });
+
   if (!id) return null;
 
   if (loading) {
@@ -278,40 +285,32 @@ export function CustomerDetail() {
           {flashError}
         </p>
       ) : null}
-      <div>
-        <Link to="/customers" className="link-brand text-sm">
-          ← Customers
-        </Link>
-        <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <h1 className="page-title">{customer.full_name}</h1>
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              <CustomerStatusBadge status={customer.status} always />
-              {customer.companies ? (
-                <CompanyChip
-                  name={customer.companies.name}
-                  color={customer.companies.color}
-                />
-              ) : (
-                <p className="text-muted">—</p>
-              )}
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Link
-              to={`/customers/${id}/edit`}
-              className="btn-ghost"
-            >
-              Edit
-            </Link>
-            <button
-              type="button"
-              onClick={() => void removeCustomer()}
-              className="btn-danger"
-            >
-              Delete customer
-            </button>
-          </div>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex flex-wrap items-center gap-2">
+          <CustomerStatusBadge status={customer.status} always />
+          {customer.companies ? (
+            <CompanyChip
+              name={customer.companies.name}
+              color={customer.companies.color}
+            />
+          ) : (
+            <p className="text-muted">—</p>
+          )}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Link
+            to={`/customers/${id}/edit`}
+            className="btn-ghost"
+          >
+            Edit
+          </Link>
+          <button
+            type="button"
+            onClick={() => void removeCustomer()}
+            className="btn-danger"
+          >
+            Delete customer
+          </button>
         </div>
       </div>
 

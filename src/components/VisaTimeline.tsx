@@ -1,4 +1,4 @@
-import type { SVGProps } from "react";
+import type { ReactNode, SVGProps } from "react";
 import { daysUntilISODate, formatDisplayDate } from "../lib/dates";
 import { leavePhaseBadgeClass } from "../lib/ui";
 import {
@@ -388,7 +388,13 @@ function TimelineItem({
   );
 }
 
-export function VisaTimeline({ visa }: { visa: VisaTimelineValue }) {
+export function VisaTimeline({
+  visa,
+  action,
+}: {
+  visa: VisaTimelineValue;
+  action?: ReactNode;
+}) {
   const nodes = buildNodes(visa);
 
   return (
@@ -397,6 +403,7 @@ export function VisaTimeline({ visa }: { visa: VisaTimelineValue }) {
         <h2 className="text-sm font-semibold text-ink">Timeline</h2>
         <LeaveBadge visa={visa} />
         <HeaderBadge visa={visa} />
+        {action ? <div className="ml-auto">{action}</div> : null}
       </div>
       <ol className="md:flex md:items-start" aria-label="Visa date timeline">
         {nodes.map((node, index) => (

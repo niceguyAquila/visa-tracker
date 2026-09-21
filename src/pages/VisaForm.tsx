@@ -9,6 +9,7 @@ import {
   type VisaFieldsValue,
 } from "../components/forms/VisaFields";
 import { VisaStatusFields } from "../components/forms/VisaStatusFields";
+import { usePageHeader } from "../context/PageHeaderContext";
 import { CUSTOMER_LIST_SELECT } from "../lib/customer";
 import { getDefaultOrgId } from "../lib/org";
 import {
@@ -25,6 +26,11 @@ import type { CustomerWithCompany, Visa, VisaStatus } from "../types";
 export function VisaForm() {
   const { id } = useParams();
   const navigate = useNavigate();
+
+  usePageHeader({
+    title: "Edit visa",
+    backTo: id ? `/visas/${id}` : "/visas/active",
+  });
 
   const [orgId, setOrgId] = useState<string | null>(null);
   const [customers, setCustomers] = useState<CustomerWithCompany[]>([]);
@@ -189,16 +195,6 @@ export function VisaForm() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <Link
-          to={id ? `/visas/${id}` : "/visas/active"}
-          className="link-brand text-sm"
-        >
-          ← Back
-        </Link>
-        <h1 className="page-title mt-2">Edit visa</h1>
-      </div>
-
       <form
         onSubmit={onSubmit}
         className="panel space-y-5 p-5 sm:p-6"

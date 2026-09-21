@@ -1,13 +1,29 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
+import { usePageHeader } from "../context/PageHeaderContext";
+import { AccountSettings } from "../components/settings/AccountSettings";
 import { PortSettings } from "../components/settings/PortSettings";
 import { CompanySettings } from "./CompaniesPage";
 
-type SettingsSection = "companies" | "ports";
+type SettingsSection = "companies" | "ports" | "account";
 
 function sectionFromHash(hash: string): SettingsSection {
-  return hash === "#ports" ? "ports" : "companies";
+  if (hash === "#ports") return "ports";
+  if (hash === "#account") return "account";
+  return "companies";
 }
+
+function hashForSection(section: SettingsSection): string {
+  if (section === "ports") return "#ports";
+  if (section === "account") return "#account";
+  return "#companies";
+}
+
+const SECTION_TABS: { id: SettingsSection; label: string }[] = [
+  { id: "companies", label: "Companies" },
+  { id: "ports", label: "Ports" },
+  { id: "account", label: "Account" },
+];
 
 export function SettingsPage() {
   const location = useLocation();
@@ -21,55 +37,46 @@ export function SettingsPage() {
 
   function show(next: SettingsSection) {
     setSection(next);
-    const hash = next === "ports" ? "#ports" : "#companies";
+    const hash = hashForSection(next);
     if (window.location.hash !== hash) {
       window.history.replaceState(null, "", `${location.pathname}${hash}`);
     }
   }
 
+  usePageHeader({ title: "Settings" });
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="page-title">Settings</h1>
-        <p className="page-sub">
-          Companies and entry ports used on customer and visa forms.
-        </p>
-      </div>
-
       <div
         className="flex gap-1 rounded-lg border border-line bg-paper p-1"
         role="tablist"
         aria-label="Settings sections"
       >
-        <button
-          type="button"
-          role="tab"
-          aria-selected={section === "companies"}
-          onClick={() => show("companies")}
-          className={`flex-1 rounded-md px-3 py-2 text-sm font-medium ${
-            section === "companies"
-              ? "bg-surface text-ink shadow-sm"
-              : "text-muted hover:text-ink"
-          }`}
-        >
-          Companies
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={section === "ports"}
-          onClick={() => show("ports")}
-          className={`flex-1 rounded-md px-3 py-2 text-sm font-medium ${
-            section === "ports"
-              ? "bg-surface text-ink shadow-sm"
-              : "text-muted hover:text-ink"
-          }`}
-        >
-          Ports
-        </button>
+        {SECTION_TABS.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            role="tab"
+            aria-selected={section === tab.id}
+            onClick={() => show(tab.id)}
+            className={`flex-1 rounded-md px-3 py-2 text-sm font-medium ${
+              section === tab.id
+                ? "bg-surface text-ink shadow-sm"
+                : "text-muted hover:text-ink"
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
-      {section === "companies" ? <CompanySettings /> : <PortSettings />}
+      {section === "companies" ? (
+        <CompanySettings />
+      ) : section === "ports" ? (
+        <PortSettings />
+      ) : (
+        <AccountSettings />
+      )}
     </div>
   );
 }
