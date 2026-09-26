@@ -22,6 +22,7 @@ import {
   formatVisaRoute,
   isVisaLanded,
   leavePhaseLabel,
+  mergeEntryPortOptions,
 } from "../lib/visa";
 import { finishDueVisas } from "../lib/visaSweep";
 import { supabase } from "../lib/supabase";
@@ -100,6 +101,11 @@ function parseExtDone(value: string | null): ExtDoneFilter {
 function parseLanded(value: string | null): LandedFilter {
   if (value === "yes" || value === "no") return value;
   return "all";
+}
+
+function parseDateParam(value: string | null): string {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return "";
+  return value;
 }
 
 function remainingDaysLabel(days: number): string {
@@ -270,6 +276,8 @@ function VisaList({ mode }: VisaListProps) {
 
   const query = searchParams.get("q") ?? "";
   const companyId = searchParams.get("company") ?? "";
+  const routeFilter = (searchParams.get("route") ?? "").trim();
+  const arrivalDate = parseDateParam(searchParams.get("arrival"));
   const urgency = parseUrgency(searchParams.get("urgency"));
   const extDone = parseExtDone(searchParams.get("ext"));
   const landed = parseLanded(searchParams.get("landed"));
@@ -282,6 +290,7 @@ function VisaList({ mode }: VisaListProps) {
   const [rows, setRows] = useState<VisaWithCustomer[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [companies, setCompanies] = useState<Company[]>([]);
+  const [customPorts, setCustomPorts] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -292,6 +301,8 @@ function VisaList({ mode }: VisaListProps) {
 
   const extraFiltersActive = Boolean(
     companyId ||
+      routeFilter ||
+      arrivalDate ||
       urgency !== "all" ||
       extDone !== "all" ||
       (mode === "active" && landed !== "all") ||
@@ -302,19 +313,33 @@ function VisaList({ mode }: VisaListProps) {
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
   const safePage = Math.min(page, totalPages);
 
+  const routeOptions = useMemo(
+    () => mergeEntryPortOptions(customPorts, routeFilter),
+    [customPorts, routeFilter]
+  );
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const { data, error: cErr } = await supabase
-        .from("companies")
-        .select("*")
-        .order("name", { ascending: true });
+      const [{ data, error: cErr }, { data: portRows }] = await Promise.all([
+        supabase
+          .from("companies")
+          .select("*")
+          .order("name", { ascending: true }),
+        supabase
+          .from("entry_ports")
+          .select("name")
+          .order("name", { ascending: true }),
+      ]);
       if (cancelled) return;
       if (cErr) {
         setError(cErr.message);
         return;
       }
       setCompanies((data ?? []) as Company[]);
+      setCustomPorts(
+        ((portRows ?? []) as { name: string }[]).map((port) => port.name)
+      );
     })();
     return () => {
       cancelled = true;
@@ -400,6 +425,14 @@ function VisaList({ mode }: VisaListProps) {
       q = q.eq("customers.company_id", companyId);
     }
 
+    if (routeFilter) {
+      q = q.eq("route", routeFilter);
+    }
+
+    if (arrivalDate) {
+      q = q.eq("date_entered", arrivalDate);
+    }
+
     const qTrim = query.trim().replace(/[%_,"]/g, "");
     if (qTrim) {
       const pattern = `%${qTrim}%`;
@@ -445,6 +478,8 @@ function VisaList({ mode }: VisaListProps) {
     mode,
     query,
     companyId,
+    routeFilter,
+    arrivalDate,
     urgency,
     extDone,
     landed,
@@ -542,7 +577,7 @@ function VisaList({ mode }: VisaListProps) {
           id="visa-list-filters"
           className={`${
             filtersOpen ? "grid" : "hidden"
-          } gap-3 sm:grid-cols-2 lg:grid-cols-4 md:grid`}
+          } gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 md:grid`}
         >
           <label className="block text-sm">
             <span className="mb-1 block font-medium text-ink-soft">Company</span>
@@ -558,6 +593,32 @@ function VisaList({ mode }: VisaListProps) {
                 </option>
               ))}
             </select>
+          </label>
+          <label className="block text-sm">
+            <span className="mb-1 block font-medium text-ink-soft">Route</span>
+            <select
+              className={inputClass}
+              value={routeFilter}
+              onChange={(e) => updateParams({ route: e.target.value })}
+            >
+              <option value="">All routes</option>
+              {routeOptions.map((port) => (
+                <option key={port} value={port}>
+                  {port}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="block text-sm">
+            <span className="mb-1 block font-medium text-ink-soft">
+              Arrival date
+            </span>
+            <input
+              type="date"
+              className={inputClass}
+              value={arrivalDate}
+              onChange={(e) => updateParams({ arrival: e.target.value })}
+            />
           </label>
           <label className="block text-sm">
             <span className="mb-1 block font-medium text-ink-soft">
