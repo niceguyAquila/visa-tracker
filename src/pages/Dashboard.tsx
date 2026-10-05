@@ -122,7 +122,7 @@ function PassportVisaKpis({
 
       <MetricSection
         title="Visa"
-        hint="Arrived visas with extension due today through the next 10 days."
+        hint="Arrived visas with extension due today through the next 10 days, and no extension date yet."
       >
         <KpiCard
           label="Due ≤10d"
@@ -184,7 +184,9 @@ export function Dashboard() {
         .order("full_name", { ascending: true }),
       supabase
         .from("visas")
-        .select("status, date_entered, date_to_extension, extension_done, customers ( company_id )"),
+        .select(
+          "status, date_entered, entry_date_unknown, date_to_extension, date_extended, extension_done, customers ( company_id )"
+        ),
     ]);
 
     if (coRes.error) {
@@ -228,7 +230,9 @@ export function Dashboard() {
       (visaRes.data ?? []).map((row) => ({
         status: row.status as VisaStatus,
         date_entered: row.date_entered,
+        entry_date_unknown: row.entry_date_unknown,
         date_to_extension: row.date_to_extension,
+        date_extended: row.date_extended,
         extension_done: row.extension_done,
         company_id: companyIdFromEmbedded(row.customers),
       }))

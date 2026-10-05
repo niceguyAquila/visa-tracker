@@ -40,6 +40,7 @@ export function VisaForm() {
   const [visa, setVisa] = useState<VisaFieldsValue>({
     visaDays: "90 Days",
     dateEntered: "",
+    entryDateUnknown: false,
     dateExtended: "",
     extensionDone: false,
     route: "",
@@ -120,6 +121,7 @@ export function VisaForm() {
       setVisa({
         visaDays: rowVisa.visa_days,
         dateEntered: rowVisa.date_entered ?? "",
+        entryDateUnknown: rowVisa.entry_date_unknown && !rowVisa.date_entered,
         dateExtended: rowVisa.date_extended ?? "",
         extensionDone: rowVisa.extension_done,
         route: rowVisa.route,
@@ -173,6 +175,7 @@ export function VisaForm() {
         passport_id: passportId,
         visa_days: visa.visaDays,
         date_entered: visa.dateEntered || null,
+        entry_date_unknown: visa.entryDateUnknown && !visa.dateEntered,
         date_extended: visa.dateExtended || null,
         extension_done: visa.extensionDone,
         cycle_done: flags.cycle_done,

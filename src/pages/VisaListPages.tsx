@@ -20,6 +20,7 @@ import {
   ARCHIVE_STATUSES,
   deriveLeavePhase,
   formatVisaRoute,
+  isVisaExtended,
   isVisaLanded,
   leavePhaseLabel,
   mergeEntryPortOptions,
@@ -400,12 +401,17 @@ function VisaList({ mode }: VisaListProps) {
     if (extDone === "no") q = q.eq("extension_done", false);
 
     if (mode === "active") {
-      if (landed === "yes") q = q.not("date_entered", "is", null);
-      if (landed === "no") q = q.is("date_entered", null);
+      if (landed === "yes") {
+        q = q.or("date_entered.not.is.null,entry_date_unknown.eq.true");
+      }
+      if (landed === "no") {
+        q = q.is("date_entered", null).eq("entry_date_unknown", false);
+      }
     }
 
     const today = todayISODate();
-    if (landed !== "no") {
+    if (landed !== "no" && urgency !== "all") {
+      q = q.is("date_extended", null).eq("extension_done", false);
       if (urgency === "expired") {
         q = q.lt("date_to_extension", today);
       } else if (urgency === "today") {
@@ -868,11 +874,14 @@ function VisaList({ mode }: VisaListProps) {
                     const leaveDays = v.leave_date_reminder
                       ? daysUntilISODate(v.leave_date_reminder)
                       : null;
-                    const landedHere = isVisaLanded(v.date_entered);
+                    const landedHere = isVisaLanded(
+                      v.date_entered,
+                      v.entry_date_unknown
+                    );
                     const leavePhase = deriveLeavePhase(v.actual_leave_date);
                     const showExtRelative =
                       mode === "active" &&
-                      !v.extension_done &&
+                      !isVisaExtended(v.extension_done, v.date_extended) &&
                       extDays !== null;
                     const showLeaveRelative = mode === "active" && landedHere;
                     return (
@@ -931,10 +940,11 @@ function VisaList({ mode }: VisaListProps) {
                           {v.visa_days}
                         </td>
                         <td className="whitespace-nowrap border-t border-line/80 px-3 py-2 tabular-nums text-ink-soft">
-                          {formatOptionalDisplayDate(
-                            v.date_entered,
-                            "Waiting"
-                          )}
+                          {v.date_entered
+                            ? formatDisplayDate(v.date_entered)
+                            : v.entry_date_unknown
+                              ? "Unknown"
+                              : "Waiting"}
                         </td>
                         <td
                           className={`whitespace-nowrap border-t border-line/80 px-3 py-2 tabular-nums ${

@@ -136,9 +136,18 @@ export const VISA_ARCHIVE_STATE_OPTIONS: VisaStatus[] = [
 ];
 
 export function isVisaLanded(
-  dateEntered: string | null | undefined
+  dateEntered: string | null | undefined,
+  entryDateUnknown = false
 ): boolean {
-  return Boolean(dateEntered);
+  return Boolean(dateEntered) || entryDateUnknown;
+}
+
+/** A filled extension date counts as extended, same as the Extension done switch. */
+export function isVisaExtended(
+  extensionDone: boolean,
+  dateExtended?: string | null
+): boolean {
+  return extensionDone || Boolean(dateExtended);
 }
 
 /** "confirmed" while the recorded leave date is still in the future. */
@@ -215,7 +224,7 @@ export function deriveExtensionTimeline(
 ): ExtensionTimeline {
   const due = input.dateToExtension ?? null;
   const actualLeave = input.actualLeaveDate ?? null;
-  const extended = input.extensionDone || Boolean(input.dateExtended);
+  const extended = isVisaExtended(input.extensionDone, input.dateExtended);
   // A future leave date is only a plan, so it cannot resolve the extension yet.
   const hasLeft = deriveLeavePhase(actualLeave, from) === "left";
 

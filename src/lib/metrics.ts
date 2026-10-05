@@ -1,5 +1,6 @@
 import { currentPassport, isWorkingCustomer } from "./customer";
 import { daysUntilISODate, isBeforeMonths } from "./dates";
+import { isVisaExtended, isVisaLanded } from "./visa";
 import type {
   Company,
   CustomerStatus,
@@ -29,7 +30,9 @@ export type CompanyMetrics = Kpis & {
 export type VisaForMetrics = {
   status: VisaStatus;
   date_entered: string | null;
+  entry_date_unknown: boolean;
   date_to_extension: string | null;
+  date_extended: string | null;
   extension_done: boolean;
   company_id: string | null;
 };
@@ -84,12 +87,17 @@ function addPassportKpis(kpis: Kpis, customers: CustomerForMetrics[]) {
 function addVisaKpis(kpis: Kpis, visas: VisaForMetrics[]) {
   for (const v of visas) {
     if (v.status === "In-Progress") {
-      if (!v.date_entered) {
+      if (!isVisaLanded(v.date_entered, v.entry_date_unknown)) {
         kpis.notLanded += 1;
         continue;
       }
       kpis.activeVisas += 1;
-      if (v.extension_done || !v.date_to_extension) continue;
+      if (
+        isVisaExtended(v.extension_done, v.date_extended) ||
+        !v.date_to_extension
+      ) {
+        continue;
+      }
       const d = daysUntilISODate(v.date_to_extension);
       if (d >= 0 && d <= 10) kpis.extDue10 += 1;
     } else {

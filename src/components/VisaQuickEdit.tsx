@@ -32,6 +32,9 @@ export function VisaQuickEdit({
 }) {
   const [status, setStatus] = useState<VisaStatus>(visa.status);
   const [dateEntered, setDateEntered] = useState(visa.date_entered ?? "");
+  const [entryDateUnknown, setEntryDateUnknown] = useState(
+    visa.entry_date_unknown && !visa.date_entered
+  );
   const [dateExtended, setDateExtended] = useState(visa.date_extended ?? "");
   const [extensionDone, setExtensionDone] = useState(visa.extension_done);
   const [actualLeaveDate, setActualLeaveDate] = useState(
@@ -95,6 +98,7 @@ export function VisaQuickEdit({
       .from("visas")
       .update({
         date_entered: dateEntered || null,
+        entry_date_unknown: entryDateUnknown && !dateEntered,
         date_extended: dateExtended || null,
         extension_done: extensionDone,
         actual_leave_date: actualLeaveDateForSave(actualLeaveDate),
@@ -147,18 +151,36 @@ export function VisaQuickEdit({
             />
 
             <div className="grid gap-4 sm:grid-cols-2 sm:items-start">
-              <label className="block">
+              <div className="block">
                 <FieldLabel>Date entered</FieldLabel>
                 <input
                   type="date"
                   value={dateEntered}
                   onChange={(e) => {
                     setDateEntered(e.target.value);
+                    if (e.target.value) setEntryDateUnknown(false);
                     setLeaveDateError(undefined);
                   }}
                   className={inputClass}
                 />
-              </label>
+                <label className="mt-2 flex items-start gap-2 text-sm text-ink">
+                  <input
+                    type="checkbox"
+                    className="mt-0.5"
+                    checked={entryDateUnknown}
+                    onChange={(e) => {
+                      setEntryDateUnknown(e.target.checked);
+                      if (e.target.checked) setDateEntered("");
+                    }}
+                  />
+                  <span>Entry date unknown</span>
+                </label>
+                <p className="mt-1 text-xs text-muted">
+                  {entryDateUnknown && !dateEntered
+                    ? "Counted as arrived and in progress until an entry date is added."
+                    : "Leave blank if the customer is still waiting."}
+                </p>
+              </div>
               <label className="block">
                 <FieldLabel>Date extended</FieldLabel>
                 <input

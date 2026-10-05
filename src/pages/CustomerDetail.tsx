@@ -609,7 +609,7 @@ export function CustomerDetail() {
               const passportNumber = passportById.get(v.passport_id)
                 ?.passport_number;
               const evisaNumber = evisaNumberOf(v.e_visas);
-              const landed = isVisaLanded(v.date_entered);
+              const landed = isVisaLanded(v.date_entered, v.entry_date_unknown);
               return (
                 <li key={v.id}>
                   <Link to={`/visas/${v.id}`} className="list-card">
@@ -633,7 +633,9 @@ export function CustomerDetail() {
                         <p className="text-sm text-muted">
                           {v.date_entered
                             ? `Entered ${formatDisplayDate(v.date_entered)}`
-                            : "Waiting"}
+                            : v.entry_date_unknown
+                              ? "Arrived, entry date unknown"
+                              : "Waiting"}
                           {v.date_to_extension
                             ? ` · Extension ${formatDisplayDate(v.date_to_extension)}`
                             : ""}

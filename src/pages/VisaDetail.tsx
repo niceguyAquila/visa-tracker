@@ -169,7 +169,7 @@ export function VisaDetail() {
     );
   }
 
-  const landed = isVisaLanded(visa.date_entered);
+  const landed = isVisaLanded(visa.date_entered, visa.entry_date_unknown);
   const leavePhase = deriveLeavePhase(visa.actual_leave_date);
 
   return (

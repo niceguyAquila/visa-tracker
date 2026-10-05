@@ -21,6 +21,7 @@ import {
 export type VisaFieldsValue = {
   visaDays: VisaDays;
   dateEntered: string;
+  entryDateUnknown: boolean;
   dateExtended: string;
   extensionDone: boolean;
   route: string;
@@ -118,20 +119,41 @@ export function VisaFields({
           </select>
           <FieldError message={errors.visaDays} />
         </label>
-        <label className="block">
+        <div className="block">
           <FieldLabel>Date entered</FieldLabel>
           <input
             type="date"
             value={value.dateEntered}
-            onChange={(e) => onChange({ dateEntered: e.target.value })}
+            onChange={(e) =>
+              onChange({
+                dateEntered: e.target.value,
+                ...(e.target.value ? { entryDateUnknown: false } : {}),
+              })
+            }
             className={errors.dateEntered ? inputErrorClass : inputClass}
             aria-invalid={Boolean(errors.dateEntered)}
           />
+          <label className="mt-2 flex items-start gap-2 text-sm text-ink">
+            <input
+              type="checkbox"
+              className="mt-0.5"
+              checked={value.entryDateUnknown}
+              onChange={(e) =>
+                onChange({
+                  entryDateUnknown: e.target.checked,
+                  ...(e.target.checked ? { dateEntered: "" } : {}),
+                })
+              }
+            />
+            <span>Entry date unknown</span>
+          </label>
           <p className="mt-1 text-xs text-muted">
-            Optional. Leave blank if the customer is still waiting.
+            {value.entryDateUnknown && !value.dateEntered
+              ? "Counted as arrived and in progress. Extension dates stay blank until an entry date is added."
+              : "Optional. Leave blank if the customer is still waiting."}
           </p>
           <FieldError message={errors.dateEntered} />
-        </label>
+        </div>
       </div>
 
       <VisaRouteFields
@@ -150,12 +172,18 @@ export function VisaFields({
           <TimelineStep
             label="Entered"
             value={
-              value.dateEntered ? formatDisplayDate(value.dateEntered) : "Waiting"
+              value.dateEntered
+                ? formatDisplayDate(value.dateEntered)
+                : value.entryDateUnknown
+                  ? "Arrived"
+                  : "Waiting"
             }
             hint={
-              !value.dateEntered
-                ? "Fill in when the customer arrives"
-                : undefined
+              value.dateEntered
+                ? undefined
+                : value.entryDateUnknown
+                  ? "Entry date unknown"
+                  : "Fill in when the customer arrives"
             }
           />
           <TimelineStep

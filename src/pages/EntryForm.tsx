@@ -73,6 +73,7 @@ const emptyPerson = (): PersonFieldsValue => ({
 const emptyVisa = (): VisaFieldsValue => ({
   visaDays: "90 Days",
   dateEntered: "",
+  entryDateUnknown: false,
   dateExtended: "",
   extensionDone: false,
   route: "",
@@ -277,6 +278,7 @@ export function EntryForm({ defaultMode }: EntryFormProps) {
     const blank = emptyVisa();
     return (
       visa.dateEntered !== blank.dateEntered ||
+      visa.entryDateUnknown !== blank.entryDateUnknown ||
       visa.dateExtended !== blank.dateExtended ||
       visa.extensionDone !== blank.extensionDone ||
       visa.route.trim() !== blank.route ||
@@ -487,6 +489,7 @@ export function EntryForm({ defaultMode }: EntryFormProps) {
         passport_id: passportId,
         visa_days: visa.visaDays,
         date_entered: visa.dateEntered || null,
+        entry_date_unknown: visa.entryDateUnknown && !visa.dateEntered,
         date_extended: visa.dateExtended || null,
         extension_done: visa.extensionDone,
         cycle_done: flags.cycle_done,

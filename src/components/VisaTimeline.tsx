@@ -4,12 +4,14 @@ import { leavePhaseBadgeClass } from "../lib/ui";
 import {
   deriveExtensionTimeline,
   deriveLeavePhase,
+  isVisaExtended,
   leavePhaseLabel,
 } from "../lib/visa";
 import type { VisaStatus } from "../types";
 
 export type VisaTimelineValue = {
   date_entered: string | null;
+  entry_date_unknown?: boolean;
   date_to_extension: string | null;
   date_extended: string | null;
   extension_done: boolean;
@@ -50,7 +52,7 @@ function buildNodes(visa: VisaTimelineValue): TimelineNode[] {
   });
   const leavePhase = deriveLeavePhase(visa.actual_leave_date);
   const left = leavePhase === "left";
-  const extended = visa.extension_done || Boolean(visa.date_extended);
+  const extended = isVisaExtended(visa.extension_done, visa.date_extended);
   const extDays = visa.date_to_extension
     ? daysUntilISODate(visa.date_to_extension)
     : null;
@@ -65,12 +67,20 @@ function buildNodes(visa: VisaTimelineValue): TimelineNode[] {
         value: formatDisplayDate(visa.date_entered),
         appearance: "done",
       }
-    : {
-        id: "entered",
-        label: "Entered",
-        value: "Waiting",
-        appearance: "pending",
-      };
+    : visa.entry_date_unknown
+      ? {
+          id: "entered",
+          label: "Entered",
+          value: "Arrived",
+          hint: "Entry date unknown",
+          appearance: "done",
+        }
+      : {
+          id: "entered",
+          label: "Entered",
+          value: "Waiting",
+          appearance: "pending",
+        };
 
   let extDue: TimelineNode;
   if (!visa.date_to_extension) {

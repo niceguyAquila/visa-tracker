@@ -67,6 +67,7 @@ export type Visa = {
   passport_id: string;
   visa_days: VisaDays;
   date_entered: string | null;
+  entry_date_unknown: boolean;
   date_to_extension: string | null;
   date_extended: string | null;
   extension_done: boolean;
