@@ -1,5 +1,9 @@
 import { getDocument, GlobalWorkerOptions } from "pdfjs-dist";
 import workerSrc from "pdfjs-dist/build/pdf.worker.min.mjs?url";
+import {
+  formatSavedName,
+  formatSavedPassportNumber,
+} from "./customer";
 import type { EVisaFileMeta, EVisaFieldsValue } from "./evisa";
 import { EVISA_GENDER_OPTIONS } from "./evisa";
 import { supabase } from "./supabase";
@@ -255,11 +259,11 @@ function fieldsFromRaw(raw: Record<string, string>): Partial<EVisaFieldsValue> {
     placeOfIssue: raw["Place of Issue"] ?? "",
     remarks: raw["Remarks"] ?? "",
     gender: toGender(raw.Gender ?? ""),
-    fullName: raw["Full Name"] ?? "",
+    fullName: formatSavedName(raw["Full Name"] ?? ""),
     dateOfBirth: toIsoDate(raw["Date Of Birth"] ?? ""),
     nationality: raw.Nationality ?? "",
     travelDocument: raw["Travel Document"] ?? "",
-    travelDocNo: raw["Travel Doc. No"] ?? "",
+    travelDocNo: formatSavedPassportNumber(raw["Travel Doc. No"] ?? ""),
     travelDocIssue: toIsoDate(raw["Travel Doc. Issue"] ?? ""),
     travelDocExpiry: toIsoDate(raw["Travel Doc. Expiry"] ?? ""),
   });

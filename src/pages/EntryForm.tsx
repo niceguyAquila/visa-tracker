@@ -20,6 +20,8 @@ import {
   CUSTOMER_LIST_SELECT,
   DEFAULT_CUSTOMER_STATUS,
   friendlyPassportConflict,
+  formatSavedName,
+  formatSavedPassportNumber,
   namesMatch,
 } from "../lib/customer";
 import { getDefaultOrgId } from "../lib/org";
@@ -426,7 +428,7 @@ export function EntryForm({ defaultMode }: EntryFormProps) {
     }
 
     const payload = {
-      full_name: person.fullName.trim(),
+      full_name: formatSavedName(person.fullName),
       visa_count: Math.max(0, Math.floor(Number(person.visaCount)) || 0),
       extension_count: Math.max(0, Math.floor(Number(person.extensionCount)) || 0),
       contact_number: composePhone(person.dialCode, person.localNumber),
@@ -451,7 +453,7 @@ export function EntryForm({ defaultMode }: EntryFormProps) {
       .insert({
         org_id: org,
         customer_id: customerId,
-        passport_number: person.passportNumber.trim(),
+        passport_number: formatSavedPassportNumber(person.passportNumber),
         passport_expiry: person.passportExpiry,
         is_current: true,
       })

@@ -12,6 +12,7 @@ import { usePageHeader } from "../context/PageHeaderContext";
 import {
   currentPassport,
   CUSTOMER_LIST_SELECT,
+  formatSavedPassportNumber,
   friendlyPassportConflict,
   sortPassports,
 } from "../lib/customer";
@@ -150,7 +151,7 @@ export function CustomerDetail() {
     const { error: iErr } = await supabase.from("passports").insert({
       org_id: customer.org_id,
       customer_id: customer.id,
-      passport_number: draft.passportNumber.trim(),
+      passport_number: formatSavedPassportNumber(draft.passportNumber),
       passport_expiry: draft.passportExpiry,
       is_current: draft.isCurrent,
     });
@@ -176,7 +177,7 @@ export function CustomerDetail() {
     const { error: uErr } = await supabase
       .from("passports")
       .update({
-        passport_number: editDraft.passportNumber.trim(),
+        passport_number: formatSavedPassportNumber(editDraft.passportNumber),
         passport_expiry: editDraft.passportExpiry,
       })
       .eq("id", passport.id);
@@ -400,7 +401,10 @@ export function CustomerDetail() {
                 <input
                   value={draft.passportNumber}
                   onChange={(e) =>
-                    setDraft((prev) => ({ ...prev, passportNumber: e.target.value }))
+                    setDraft((prev) => ({
+                      ...prev,
+                      passportNumber: e.target.value.toUpperCase(),
+                    }))
                   }
                   className={
                     draftErrors.passportNumber ? inputErrorClass : inputClass
@@ -476,7 +480,7 @@ export function CustomerDetail() {
                             onChange={(e) =>
                               setEditDraft((prev) => ({
                                 ...prev,
-                                passportNumber: e.target.value,
+                                passportNumber: e.target.value.toUpperCase(),
                               }))
                             }
                             className={inputClass}

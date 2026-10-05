@@ -124,7 +124,9 @@ export function EVisaFields({
             <input
               required
               value={value.fullName}
-              onChange={(e) => onChange({ fullName: e.target.value })}
+              onChange={(e) =>
+                onChange({ fullName: e.target.value.toUpperCase() })
+              }
               className={errors.fullName ? inputErrorClass : inputClass}
               aria-invalid={Boolean(errors.fullName)}
             />
@@ -173,7 +175,9 @@ export function EVisaFields({
             <input
               required
               value={value.travelDocNo}
-              onChange={(e) => onChange({ travelDocNo: e.target.value })}
+              onChange={(e) =>
+                onChange({ travelDocNo: e.target.value.toUpperCase() })
+              }
               className={errors.travelDocNo ? inputErrorClass : inputClass}
               aria-invalid={Boolean(errors.travelDocNo)}
             />

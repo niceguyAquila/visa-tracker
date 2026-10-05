@@ -5,7 +5,7 @@ import {
   type PersonFieldsValue,
 } from "../components/forms/PersonFields";
 import { usePageHeader } from "../context/PageHeaderContext";
-import { DEFAULT_CUSTOMER_STATUS } from "../lib/customer";
+import { DEFAULT_CUSTOMER_STATUS, formatSavedName } from "../lib/customer";
 import { getDefaultOrgId } from "../lib/org";
 import {
   composePhone,
@@ -124,7 +124,7 @@ export function CustomerForm() {
     const { error: uErr } = await supabase
       .from("customers")
       .update({
-        full_name: person.fullName.trim(),
+        full_name: formatSavedName(person.fullName),
         visa_count: Math.max(0, Math.floor(Number(person.visaCount)) || 0),
         extension_count: Math.max(
           0,

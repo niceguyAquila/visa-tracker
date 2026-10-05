@@ -75,7 +75,9 @@ export function PersonFields({
           <input
             required
             value={value.fullName}
-            onChange={(e) => onChange({ fullName: e.target.value })}
+            onChange={(e) =>
+              onChange({ fullName: e.target.value.toUpperCase() })
+            }
             className={errors.fullName ? inputErrorClass : inputClass}
             aria-invalid={Boolean(errors.fullName)}
           />
@@ -180,7 +182,9 @@ export function PersonFields({
               <input
                 required
                 value={value.passportNumber}
-                onChange={(e) => onChange({ passportNumber: e.target.value })}
+                onChange={(e) =>
+                  onChange({ passportNumber: e.target.value.toUpperCase() })
+                }
                 className={errors.passportNumber ? inputErrorClass : inputClass}
                 aria-invalid={Boolean(errors.passportNumber)}
               />

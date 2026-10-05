@@ -25,6 +25,16 @@ export function normalizePersonName(name: string): string {
   return name.trim().replace(/\s+/g, " ").toLowerCase();
 }
 
+/** Stored customer and e-visa names. */
+export function formatSavedName(name: string): string {
+  return name.trim().toUpperCase();
+}
+
+/** Stored passport and travel-document numbers. */
+export function formatSavedPassportNumber(number: string): string {
+  return number.trim().toUpperCase();
+}
+
 export function currentPassport(
   passports: Passport[] | null | undefined
 ): Passport | null {

@@ -1,3 +1,7 @@
+import {
+  formatSavedName,
+  formatSavedPassportNumber,
+} from "./customer";
 import type { EVisa, Passport } from "../types";
 
 export const DEFAULT_TRAVEL_DOCUMENT = "Passport";
@@ -88,11 +92,11 @@ export function snapshotFromPassport(
 ): Partial<EVisaFieldsValue> {
   const patch: Partial<EVisaFieldsValue> = {};
   if (passport) {
-    patch.travelDocNo = passport.passport_number;
+    patch.travelDocNo = formatSavedPassportNumber(passport.passport_number);
     patch.travelDocExpiry = passport.passport_expiry;
   }
-  const name = customerName.trim();
-  if (name && (!prev.fullName.trim() || prev.fullName.trim() === name)) {
+  const name = formatSavedName(customerName);
+  if (name && (!prev.fullName.trim() || formatSavedName(prev.fullName) === name)) {
     patch.fullName = name;
   }
   return patch;
@@ -176,11 +180,11 @@ export function evisaPayload(
     place_of_issue: value.placeOfIssue.trim(),
     remarks: value.remarks.trim(),
     gender: value.gender,
-    full_name: value.fullName.trim(),
+    full_name: formatSavedName(value.fullName),
     date_of_birth: value.dateOfBirth || null,
     nationality: value.nationality.trim(),
     travel_document: value.travelDocument.trim(),
-    travel_doc_no: value.travelDocNo.trim(),
+    travel_doc_no: formatSavedPassportNumber(value.travelDocNo),
     travel_doc_issue: value.travelDocIssue || null,
     travel_doc_expiry: value.travelDocExpiry || null,
     ...(file
