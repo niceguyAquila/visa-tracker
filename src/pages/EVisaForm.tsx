@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type DragEvent, type FormEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { EVisaFields } from "../components/forms/EVisaFields";
 import { PassportSelect } from "../components/forms/PassportSelect";
-import { FieldLabel, FormSection, SectionHeading } from "../components/forms/formStyles";
+import { FormSection, SectionHeading } from "../components/forms/formStyles";
 import { usePageHeader } from "../context/PageHeaderContext";
 import { CUSTOMER_LIST_SELECT } from "../lib/customer";
 import {
@@ -60,6 +60,7 @@ export function EVisaForm() {
   const [parseStatus, setParseStatus] = useState<ParseStatus>("idle");
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [parseFlash, setParseFlash] = useState<string | null>(null);
+  const [dragOver, setDragOver] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -125,6 +126,23 @@ export function EVisaForm() {
       cancelled = true;
     };
   }, [id]);
+
+  useEffect(() => {
+    function preventFileNav(e: globalThis.DragEvent) {
+      if (e.dataTransfer?.types.includes("Files")) e.preventDefault();
+    }
+    function resetDrag() {
+      setDragOver(false);
+    }
+    window.addEventListener("dragover", preventFileNav);
+    window.addEventListener("drop", preventFileNav);
+    window.addEventListener("dragend", resetDrag);
+    return () => {
+      window.removeEventListener("dragover", preventFileNav);
+      window.removeEventListener("drop", preventFileNav);
+      window.removeEventListener("dragend", resetDrag);
+    };
+  }, []);
 
   const locked = busy || parseStatus !== "idle";
 
@@ -228,6 +246,31 @@ export function EVisaForm() {
     } finally {
       if (gen === parseGen.current) setParseStatus("idle");
     }
+  }
+
+  function onPdfDragEnter(e: DragEvent<HTMLLabelElement>) {
+    e.preventDefault();
+    if (locked || !Array.from(e.dataTransfer.types).includes("Files")) return;
+    setDragOver(true);
+  }
+
+  function onPdfDragOver(e: DragEvent<HTMLLabelElement>) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = locked ? "none" : "copy";
+  }
+
+  function onPdfDragLeave(e: DragEvent<HTMLLabelElement>) {
+    const next = e.relatedTarget;
+    if (next instanceof Node && e.currentTarget.contains(next)) return;
+    setDragOver(false);
+  }
+
+  function onPdfDrop(e: DragEvent<HTMLLabelElement>) {
+    e.preventDefault();
+    setDragOver(false);
+    if (locked) return;
+    const file = e.dataTransfer.files?.[0];
+    if (file) void onPdfPicked(file);
   }
 
   function clearPendingFile() {
@@ -354,19 +397,49 @@ export function EVisaForm() {
             hint="Optional. The file is stored as the original document, and labeled text fills the fields below."
           />
           <div className="space-y-3">
-            <label className="block">
-              <FieldLabel>PDF file</FieldLabel>
+            <label
+              data-evisa-drop
+              onDragEnter={onPdfDragEnter}
+              onDragOver={onPdfDragOver}
+              onDragLeave={onPdfDragLeave}
+              onDrop={onPdfDrop}
+              className={`flex flex-col items-center justify-center rounded-lg border border-dashed px-4 py-8 text-center transition ${
+                locked
+                  ? "cursor-not-allowed border-line bg-paper opacity-60"
+                  : dragOver
+                    ? "border-brand bg-brand-soft"
+                    : "cursor-pointer border-line bg-paper hover:border-brand/40 hover:bg-brand-soft/40 focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/20"
+              }`}
+            >
               <input
                 ref={fileInputRef}
                 type="file"
                 accept="application/pdf,.pdf"
                 disabled={locked}
-                className="input-field mt-1 file:mr-3 file:rounded-md file:border-0 file:bg-brand-soft file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-brand-ink"
+                aria-label="e-visa PDF"
+                className="sr-only"
                 onChange={(e) => {
                   const file = e.target.files?.[0];
                   if (file) void onPdfPicked(file);
                 }}
               />
+              <span className="text-sm font-medium text-ink">
+                {dragOver ? (
+                  "Release to attach this PDF"
+                ) : attachedName ? (
+                  <>
+                    Drop a PDF to replace it, or{" "}
+                    <span className="link-brand">browse</span>
+                  </>
+                ) : (
+                  <>
+                    Drop a PDF here, or <span className="link-brand">browse</span>
+                  </>
+                )}
+              </span>
+              <span className="mt-1 text-xs text-muted">
+                One PDF, 10 MB or smaller
+              </span>
             </label>
             {attachedName ? (
               <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-line bg-paper px-3 py-2 text-sm">
@@ -380,9 +453,7 @@ export function EVisaForm() {
                   Remove
                 </button>
               </div>
-            ) : (
-              <p className="text-sm text-muted">No PDF attached.</p>
-            )}
+            ) : null}
             {parseStatus === "reading" ? (
               <p className="callout-warn" role="status">
                 Reading PDF…
