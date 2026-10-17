@@ -110,13 +110,18 @@ function PassportVisaKpis({
 
       <MetricSection
         title="Passport"
-        hint="Current passports that expire in less than 7 months, including already expired."
+        hint="Current passports that expire in less than 7 months, including already expired, and customers marked NTL."
       >
         <KpiCard
           label="Expiry <7 mo"
           value={kpis.expired}
           tone="red"
           to={kpiPath("/customers", { expiry: "7m", company: companyId })}
+        />
+        <KpiCard
+          label="NTL"
+          value={kpis.ntl}
+          to={kpiPath("/customers", { ntl: "yes", company: companyId })}
         />
       </MetricSection>
 

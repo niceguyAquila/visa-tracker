@@ -88,6 +88,7 @@ export function CustomersPage() {
   const companyId = searchParams.get("company") ?? "";
   const expiry = parseExpiryFilter(searchParams.get("expiry"));
   const status = parseStatusFilter(searchParams.get("status"));
+  const ntlOnly = searchParams.get("ntl") === "yes";
 
   const [rows, setRows] = useState<CustomerWithCompany[]>([]);
   const [exclusions, setExclusions] = useState<DuplicateExclusion[]>([]);
@@ -147,7 +148,7 @@ export function CustomersPage() {
   );
 
   const filtersActive = Boolean(
-    query.trim() || companyId || expiry !== "all" || status !== "all"
+    query.trim() || companyId || expiry !== "all" || status !== "all" || ntlOnly
   );
 
   const filtered = useMemo(() => {
@@ -158,6 +159,7 @@ export function CustomersPage() {
         if (status !== "all" && (c.status ?? DEFAULT_CUSTOMER_STATUS) !== status) {
           return false;
         }
+        if (ntlOnly && !c.ntl) return false;
         if (!matchesQuery(c, q)) return false;
         const current = currentPassport(c.passports);
         return matchesExpiry(current?.passport_expiry ?? null, expiry);
@@ -169,7 +171,7 @@ export function CustomersPage() {
         const bN = bP ? parseISODateNum(bP.passport_expiry) : Number.MAX_SAFE_INTEGER;
         return aN - bN;
       });
-  }, [rows, query, companyId, expiry, status]);
+  }, [rows, query, companyId, expiry, status, ntlOnly]);
 
   function updateParams(updates: Record<string, string>) {
     const next = new URLSearchParams(searchParams);
@@ -244,7 +246,7 @@ export function CustomersPage() {
                 onChange={(e) => updateParams({ q: e.target.value })}
               />
             </label>
-            <div className="grid gap-3 sm:grid-cols-3">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <label className="block text-sm">
                 <span className="mb-1 block font-medium text-ink-soft">Company</span>
                 <select
@@ -298,6 +300,21 @@ export function CustomersPage() {
                       {opt}
                     </option>
                   ))}
+                </select>
+              </label>
+              <label className="block text-sm">
+                <span className="mb-1 block font-medium text-ink-soft">NTL</span>
+                <select
+                  className={inputClass}
+                  value={ntlOnly ? "yes" : "all"}
+                  onChange={(e) =>
+                    updateParams({
+                      ntl: e.target.value === "yes" ? "yes" : "",
+                    })
+                  }
+                >
+                  <option value="all">All</option>
+                  <option value="yes">NTL</option>
                 </select>
               </label>
             </div>
