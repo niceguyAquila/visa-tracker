@@ -24,6 +24,7 @@ export type PersonFieldsValue = {
   dialCode: string;
   localNumber: string;
   status: CustomerStatus;
+  ntl: boolean;
 };
 
 export type PersonFieldErrors = Partial<
@@ -169,6 +170,16 @@ export function PersonFields({
             in Dashboard Customers.
           </p>
         </div>
+
+        <label className="flex items-center gap-2 text-sm text-ink">
+          <input
+            type="checkbox"
+            checked={value.ntl}
+            onChange={(e) => onChange({ ntl: e.target.checked })}
+            className="size-4 rounded border-line"
+          />
+          NTL
+        </label>
       </div>
 
       {showPassport ? (

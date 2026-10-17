@@ -70,6 +70,7 @@ const emptyPerson = (): PersonFieldsValue => ({
   dialCode: DEFAULT_DIAL.code,
   localNumber: "",
   status: DEFAULT_CUSTOMER_STATUS,
+  ntl: false,
 });
 
 const emptyVisa = (): VisaFieldsValue => ({
@@ -434,6 +435,7 @@ export function EntryForm({ defaultMode }: EntryFormProps) {
       contact_number: composePhone(person.dialCode, person.localNumber),
       company_id: person.companyId,
       status: person.status ?? DEFAULT_CUSTOMER_STATUS,
+      ntl: person.ntl,
     };
 
     const { data, error: iErr } = await supabase

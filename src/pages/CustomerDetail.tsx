@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { CompanyChip } from "../components/CompanyChip";
-import { CustomerStatusBadge } from "../components/CustomerStatusBadge";
+import { CustomerStatusBadge, NtlBadge } from "../components/CustomerStatusBadge";
 import {
   FieldError,
   FieldLabel,
@@ -289,6 +289,7 @@ export function CustomerDetail() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex flex-wrap items-center gap-2">
           <CustomerStatusBadge status={customer.status} always />
+          <NtlBadge ntl={customer.ntl} />
           {customer.companies ? (
             <CompanyChip
               name={customer.companies.name}

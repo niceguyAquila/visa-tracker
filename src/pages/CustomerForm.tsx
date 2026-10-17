@@ -37,6 +37,7 @@ export function CustomerForm() {
     dialCode: DEFAULT_DIAL.code,
     localNumber: "",
     status: DEFAULT_CUSTOMER_STATUS,
+    ntl: false,
   });
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -96,6 +97,7 @@ export function CustomerForm() {
         dialCode: parsed.dialCode,
         localNumber: parsed.local,
         status: customer.status ?? DEFAULT_CUSTOMER_STATUS,
+        ntl: customer.ntl ?? false,
       });
       setLoading(false);
     })();
@@ -133,6 +135,7 @@ export function CustomerForm() {
         contact_number: composePhone(person.dialCode, person.localNumber),
         company_id: person.companyId,
         status: person.status,
+        ntl: person.ntl,
       })
       .eq("id", id);
 

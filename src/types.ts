@@ -39,6 +39,7 @@ export type Customer = {
   extension_count: number;
   contact_number: string;
   status: CustomerStatus;
+  ntl: boolean;
   created_at: string;
 };
 

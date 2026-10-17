@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { AddFab } from "../components/AddFab";
 import { CompanyChip } from "../components/CompanyChip";
-import { CustomerStatusBadge } from "../components/CustomerStatusBadge";
+import { CustomerStatusBadge, NtlBadge } from "../components/CustomerStatusBadge";
 import { ExportReportButton } from "../components/ExportReportButton";
 import { usePageHeader } from "../context/PageHeaderContext";
 import {
@@ -349,6 +349,7 @@ export function CustomersPage() {
                           <div className="flex min-w-0 flex-wrap items-center gap-2">
                             <p className="font-medium text-ink">{c.full_name}</p>
                             <CustomerStatusBadge status={c.status} />
+                            <NtlBadge ntl={c.ntl} />
                           </div>
                           <p className="shrink-0 text-right text-sm text-muted">
                             {c.companies ? (

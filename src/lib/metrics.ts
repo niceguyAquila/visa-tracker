@@ -19,6 +19,7 @@ export type Kpis = {
   notLanded: number;
   archivedVisas: number;
   extDue10: number;
+  ntl: number;
 };
 
 export type CompanyMetrics = Kpis & {
@@ -47,6 +48,7 @@ const emptyKpis = (companyCount: number, customerCount = 0): Kpis => ({
   notLanded: 0,
   archivedVisas: 0,
   extDue10: 0,
+  ntl: 0,
 });
 
 export type CustomerForMetrics = Pick<
@@ -54,6 +56,7 @@ export type CustomerForMetrics = Pick<
   "company_id" | "visa_count" | "extension_count"
 > & {
   status?: CustomerStatus | null;
+  ntl?: boolean | null;
   passports?: Passport[];
 };
 
@@ -115,6 +118,7 @@ export function aggregateKpis(
     companyCount,
     customers.filter(isWorkingCustomer).length
   );
+  kpis.ntl = customers.filter((c) => c.ntl).length;
   addPassportKpis(kpis, customers);
   addVisaKpis(kpis, visas);
   return kpis;

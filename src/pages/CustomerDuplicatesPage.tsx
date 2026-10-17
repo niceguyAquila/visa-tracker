@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { CompanyChip } from "../components/CompanyChip";
-import { CustomerStatusBadge } from "../components/CustomerStatusBadge";
+import { CustomerStatusBadge, NtlBadge } from "../components/CustomerStatusBadge";
 import { usePageHeader } from "../context/PageHeaderContext";
 import {
   currentPassport,
@@ -275,7 +275,10 @@ export function CustomerDuplicatesPage() {
                               <p className="font-medium text-ink">
                                 {selected ? "Keep this customer" : "Merge into selected"}
                               </p>
-                              <CustomerStatusBadge status={c.status} />
+                              <span className="inline-flex flex-wrap items-center gap-2">
+                                <CustomerStatusBadge status={c.status} />
+                                <NtlBadge ntl={c.ntl} />
+                              </span>
                               <p className="text-xs text-muted">
                                 {c.visa_count} visa count · {c.extension_count} extensions
                                 {(inProgress[c.id] ?? 0) > 0

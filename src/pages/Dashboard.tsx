@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { CompanySwatch } from "../components/CompanyChip";
-import { CustomerStatusBadge } from "../components/CustomerStatusBadge";
+import { CustomerStatusBadge, NtlBadge } from "../components/CustomerStatusBadge";
 import { ExportReportButton } from "../components/ExportReportButton";
 import { usePageHeader } from "../context/PageHeaderContext";
 import { daysUntilISODate, formatDisplayDate } from "../lib/dates";
@@ -365,6 +365,7 @@ export function Dashboard() {
                             <div className="flex min-w-0 flex-wrap items-center gap-2">
                               <p className="font-medium text-ink">{c.full_name}</p>
                               <CustomerStatusBadge status={c.status} />
+                              <NtlBadge ntl={c.ntl} />
                             </div>
                             {current && d !== null ? (
                               <div
@@ -397,13 +398,14 @@ export function Dashboard() {
             <section className="space-y-3">
               <h2 className="text-lg font-semibold text-ink">By company</h2>
               <div className="overflow-x-auto rounded-lg border border-line bg-surface">
-                <table className="w-full min-w-[52rem] text-left text-sm">
+                <table className="w-full min-w-[58rem] text-left text-sm">
                   <thead className="border-b border-line bg-paper text-xs font-medium uppercase tracking-wide text-muted">
                     <tr>
                       <th className="px-3 py-2.5">Company</th>
                       <th className="px-3 py-2.5 text-right">Customers</th>
                       <th className="px-3 py-2.5 text-right">Arrived</th>
                       <th className="px-3 py-2.5 text-right">Waiting</th>
+                      <th className="px-3 py-2.5 text-right">NTL</th>
                       <th className="px-3 py-2.5 text-right">Pass. &lt;7 mo</th>
                       <th className="px-3 py-2.5 text-right">Ext. ≤10d</th>
                     </tr>
@@ -437,6 +439,9 @@ export function Dashboard() {
                         </td>
                         <td className="px-3 py-2.5 text-right tabular-nums text-ink-soft">
                           {row.notLanded}
+                        </td>
+                        <td className="px-3 py-2.5 text-right tabular-nums text-ink-soft">
+                          {row.ntl}
                         </td>
                         <td className="px-3 py-2.5 text-right tabular-nums text-ink-soft">
                           {row.expired}
