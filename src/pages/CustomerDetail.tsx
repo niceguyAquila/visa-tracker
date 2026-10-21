@@ -18,6 +18,7 @@ import {
 } from "../lib/customer";
 import { evisaNumberOf } from "../lib/evisa";
 import {
+  PASSPORT_PHOTO_UI_ENABLED,
   removePassportPhoto,
   signedPassportPhotoUrl,
   uploadPassportPhoto,
@@ -127,6 +128,7 @@ export function CustomerDetail() {
   }, [load]);
 
   useEffect(() => {
+    if (!PASSPORT_PHOTO_UI_ENABLED) return;
     const path = customer?.photo_path;
     const request = ++photoRequest.current;
     if (!path) {
@@ -414,7 +416,14 @@ export function CustomerDetail() {
       {error ? <p className="text-sm text-red-700">{error}</p> : null}
 
       <section className="panel p-4">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+        <div
+          className={
+            PASSPORT_PHOTO_UI_ENABLED
+              ? "flex flex-col gap-4 sm:flex-row sm:items-start"
+              : undefined
+          }
+        >
+          {PASSPORT_PHOTO_UI_ENABLED ? (
           <div className="w-full shrink-0 sm:w-48">
             <p className="meta">Passport photo</p>
             <div className="mt-1">
@@ -473,7 +482,14 @@ export function CustomerDetail() {
               }}
             />
           </div>
-          <dl className="grid flex-1 gap-4 sm:grid-cols-2">
+          ) : null}
+          <dl
+            className={
+              PASSPORT_PHOTO_UI_ENABLED
+                ? "grid flex-1 gap-4 sm:grid-cols-2"
+                : "grid gap-4 sm:grid-cols-2"
+            }
+          >
           <div>
             <dt className="meta">
               Current passport

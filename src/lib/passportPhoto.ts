@@ -1,5 +1,8 @@
 import { supabase } from "./supabase";
 
+/** Flip to true to show the passport photo on the customer detail page. */
+export const PASSPORT_PHOTO_UI_ENABLED = false;
+
 export const PASSPORT_PHOTO_BUCKET = "passport-photos";
 export const PASSPORT_PHOTO_MAX_BYTES = 2 * 1024 * 1024;
 const PASSPORT_PHOTO_MAX_EDGE = 1200;
