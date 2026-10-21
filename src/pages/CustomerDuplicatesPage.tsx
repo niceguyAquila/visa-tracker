@@ -12,6 +12,7 @@ import {
   unresolvedDuplicateGroups,
 } from "../lib/customer";
 import { formatDisplayDate } from "../lib/dates";
+import { copyPassportPhoto, removePassportPhoto } from "../lib/passportPhoto";
 import { supabase } from "../lib/supabase";
 import type { CustomerWithCompany, DuplicateExclusion } from "../types";
 
@@ -135,6 +136,38 @@ export function CustomerDuplicatesPage() {
 
     setBusyKey(key);
     setError(null);
+
+    const keep = group.find((c) => c.id === keepId);
+    if (keep && !keep.photo_path) {
+      const donor = group.find((c) => c.id !== keepId && c.photo_path);
+      if (donor?.photo_path) {
+        try {
+          const path = await copyPassportPhoto(
+            donor.photo_path,
+            keep.org_id,
+            keep.id
+          );
+          const { error: pErr } = await supabase
+            .from("customers")
+            .update({ photo_path: path })
+            .eq("id", keep.id);
+          if (pErr) {
+            setBusyKey(null);
+            setError(pErr.message);
+            return;
+          }
+        } catch (err) {
+          setBusyKey(null);
+          setError(
+            err instanceof Error && err.message
+              ? err.message
+              : "Couldn’t keep the passport photo."
+          );
+          return;
+        }
+      }
+    }
+
     const { error: mErr } = await supabase.rpc("merge_customers", {
       keep_id: keepId,
       absorb_ids: absorbIds,
@@ -144,6 +177,11 @@ export function CustomerDuplicatesPage() {
       setError(friendlyMergeConflict(mErr.message));
       return;
     }
+    await Promise.all(
+      group
+        .filter((c) => c.id !== keepId && c.photo_path)
+        .map((c) => removePassportPhoto(c.photo_path).catch(() => undefined))
+    );
     navigate(`/customers/${keepId}`, {
       state: { flashSuccess: "Customers merged." },
     });

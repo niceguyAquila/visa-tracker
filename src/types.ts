@@ -40,6 +40,7 @@ export type Customer = {
   contact_number: string;
   status: CustomerStatus;
   ntl: boolean;
+  photo_path: string | null;
   created_at: string;
 };
 

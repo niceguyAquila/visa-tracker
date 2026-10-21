@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { CompanyChip } from "../components/CompanyChip";
 import { CustomerStatusBadge, NtlBadge } from "../components/CustomerStatusBadge";
@@ -17,6 +17,11 @@ import {
   sortPassports,
 } from "../lib/customer";
 import { evisaNumberOf } from "../lib/evisa";
+import {
+  removePassportPhoto,
+  signedPassportPhotoUrl,
+  uploadPassportPhoto,
+} from "../lib/passportPhoto";
 import { supabase } from "../lib/supabase";
 import { daysUntilISODate, formatDisplayDate } from "../lib/dates";
 import { statusBadgeClass, landedBadgeClass, landedLabel, urgencyClass } from "../lib/ui";
@@ -59,6 +64,13 @@ export function CustomerDetail() {
   const [passportBusy, setPassportBusy] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState<PassportDraft>(emptyDraft);
+  const photoInputRef = useRef<HTMLInputElement>(null);
+  const photoRequest = useRef(0);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [photoUrlPath, setPhotoUrlPath] = useState<string | null>(null);
+  const [photoError, setPhotoError] = useState<string | null>(null);
+  const [photoBusy, setPhotoBusy] = useState<"save" | "remove" | null>(null);
+  const [photoRevision, setPhotoRevision] = useState(0);
 
   useEffect(() => {
     const state = location.state as {
@@ -114,15 +126,96 @@ export function CustomerDetail() {
     void load();
   }, [load]);
 
+  useEffect(() => {
+    const path = customer?.photo_path;
+    const request = ++photoRequest.current;
+    if (!path) {
+      setPhotoUrl(null);
+      setPhotoUrlPath(null);
+      setPhotoError(null);
+      return;
+    }
+    setPhotoError(null);
+    void signedPassportPhotoUrl(path).then((url) => {
+      if (photoRequest.current !== request) return;
+      if (!url) {
+        setPhotoUrl(null);
+        setPhotoUrlPath(path);
+        setPhotoError("Couldn’t load the passport photo.");
+        return;
+      }
+      setPhotoUrl(url);
+      setPhotoUrlPath(path);
+    });
+  }, [customer?.photo_path, photoRevision]);
+
   async function removeCustomer() {
-    if (!id) return;
+    if (!id || !customer) return;
     if (!confirm("Delete this customer?")) return;
+    const photoPath = customer.photo_path;
     const { error: dErr } = await supabase.from("customers").delete().eq("id", id);
     if (dErr) {
       setError(dErr.message);
       return;
     }
+    await removePassportPhoto(photoPath).catch(() => undefined);
     navigate("/customers");
+  }
+
+  async function onPhotoPicked(file: File) {
+    if (!customer) return;
+    const replacing = Boolean(customer.photo_path);
+    setPhotoBusy("save");
+    setPhotoError(null);
+    try {
+      const path = await uploadPassportPhoto(customer.org_id, customer.id, file);
+      const { error: uErr } = await supabase
+        .from("customers")
+        .update({ photo_path: path })
+        .eq("id", customer.id);
+      if (uErr) {
+        if (!replacing) await removePassportPhoto(path).catch(() => undefined);
+        throw new Error(uErr.message);
+      }
+      setCustomer((prev) => (prev ? { ...prev, photo_path: path } : prev));
+      setPhotoRevision((n) => n + 1);
+      setFlashSuccess(replacing ? "Passport photo replaced." : "Passport photo added.");
+    } catch (err) {
+      setPhotoError(
+        err instanceof Error && err.message
+          ? err.message
+          : "Couldn’t save the passport photo."
+      );
+    } finally {
+      setPhotoBusy(null);
+    }
+  }
+
+  async function removePhoto() {
+    if (!customer?.photo_path) return;
+    if (!confirm("Remove this passport photo?")) return;
+    setPhotoBusy("remove");
+    setPhotoError(null);
+    try {
+      await removePassportPhoto(customer.photo_path);
+      const { error: uErr } = await supabase
+        .from("customers")
+        .update({ photo_path: null })
+        .eq("id", customer.id);
+      if (uErr) throw new Error(uErr.message);
+      setCustomer((prev) => (prev ? { ...prev, photo_path: null } : prev));
+      setPhotoUrl(null);
+      setPhotoUrlPath(null);
+      setFlashSuccess("Passport photo removed.");
+    } catch (err) {
+      setPhotoError(
+        err instanceof Error && err.message
+          ? err.message
+          : "Couldn’t remove the passport photo."
+      );
+    } finally {
+      setPhotoBusy(null);
+    }
   }
 
   function validateDraft(value: PassportDraft): {
@@ -273,6 +366,8 @@ export function CustomerDetail() {
   const passportById = new Map(passports.map((p) => [p.id, p]));
   const current = currentPassport(passports);
   const days = current ? daysUntilISODate(current.passport_expiry) : null;
+  const visiblePhotoUrl =
+    customer.photo_path && photoUrlPath === customer.photo_path ? photoUrl : null;
 
   return (
     <div className="space-y-6">
@@ -319,7 +414,66 @@ export function CustomerDetail() {
       {error ? <p className="text-sm text-red-700">{error}</p> : null}
 
       <section className="panel p-4">
-        <dl className="grid gap-4 sm:grid-cols-2">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+          <div className="w-full shrink-0 sm:w-48">
+            <p className="meta">Passport photo</p>
+            <div className="mt-1">
+              {visiblePhotoUrl ? (
+                <img
+                  src={visiblePhotoUrl}
+                  alt={`Passport photo of ${customer.full_name}`}
+                  className="max-h-72 w-full rounded-lg border border-line bg-paper object-contain"
+                />
+              ) : (
+                <div className="flex min-h-40 items-center justify-center rounded-lg border border-dashed border-line bg-paper px-3 py-6 text-center text-sm text-muted">
+                  {photoError
+                    ? photoError
+                    : customer.photo_path
+                      ? "Loading photo…"
+                      : "No passport photo"}
+                </div>
+              )}
+            </div>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <button
+                type="button"
+                className="btn-ghost px-3 py-1.5"
+                disabled={photoBusy !== null}
+                onClick={() => photoInputRef.current?.click()}
+              >
+                {photoBusy === "save"
+                  ? "Saving photo…"
+                  : customer.photo_path
+                    ? "Replace"
+                    : "Add passport photo"}
+              </button>
+              {customer.photo_path ? (
+                <button
+                  type="button"
+                  className="btn-danger px-3 py-1.5"
+                  disabled={photoBusy !== null}
+                  onClick={() => void removePhoto()}
+                >
+                  {photoBusy === "remove" ? "Removing…" : "Remove"}
+                </button>
+              ) : null}
+            </div>
+            {visiblePhotoUrl && photoError ? (
+              <p className="mt-2 text-sm text-red-700">{photoError}</p>
+            ) : null}
+            <input
+              ref={photoInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
+              className="sr-only"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                e.target.value = "";
+                if (file) void onPhotoPicked(file);
+              }}
+            />
+          </div>
+          <dl className="grid flex-1 gap-4 sm:grid-cols-2">
           <div>
             <dt className="meta">
               Current passport
@@ -370,6 +524,7 @@ export function CustomerDetail() {
             <dd className="mt-1 text-ink">{customer.contact_number || "—"}</dd>
           </div>
         </dl>
+        </div>
       </section>
 
       <section className="space-y-3">
