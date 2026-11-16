@@ -5,6 +5,7 @@ import { PassportSelect } from "../components/forms/PassportSelect";
 import { FormSection, SectionHeading } from "../components/forms/formStyles";
 import { usePageHeader } from "../context/PageHeaderContext";
 import { CUSTOMER_LIST_SELECT } from "../lib/customer";
+import { describeError, isDebugMode } from "../lib/debug";
 import {
   embedOne,
   emptyEVisaFields,
@@ -217,7 +218,10 @@ export function EVisaForm() {
       const patch = fieldsFromEvisaPdfItems(items);
       if (Object.keys(patch).length === 0) {
         setFormError(
-          "Couldn’t read this PDF. Fill the fields yourself or try a different file."
+          "Couldn’t read this PDF. Fill the fields yourself or try a different file." +
+            (isDebugMode()
+              ? ` [debug: no fields matched; ${items.length} text items found]`
+              : "")
         );
         return;
       }
@@ -242,7 +246,8 @@ export function EVisaForm() {
       console.error("e-visa PDF extraction failed", err);
       if (gen !== parseGen.current) return;
       setFormError(
-        "Couldn’t read this PDF. Fill the fields yourself or try a different file."
+        "Couldn’t read this PDF. Fill the fields yourself or try a different file." +
+          (isDebugMode() ? ` [debug: ${describeError(err)}]` : "")
       );
     } finally {
       if (gen === parseGen.current) setParseStatus("idle");
@@ -510,7 +515,9 @@ export function EVisaForm() {
           />
         </FormSection>
 
-        {formError ? <p className="text-sm text-red-700">{formError}</p> : null}
+        {formError ? (
+          <p className="text-sm break-words text-red-700">{formError}</p>
+        ) : null}
         <div className="flex flex-col-reverse gap-2 border-t border-line pt-4 sm:flex-row sm:justify-end">
           <Link to={`/visas/${id}`} className="btn-ghost">
             Cancel
