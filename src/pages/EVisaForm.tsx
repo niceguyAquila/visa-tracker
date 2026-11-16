@@ -23,7 +23,7 @@ import {
 } from "../lib/evisa";
 import {
   EVISA_PDF_MAX_BYTES,
-  extractPdfItems,
+  extractPdfContent,
   fieldsFromEvisaPdfItems,
   isPdfFile,
   removeEvisaPdf,
@@ -33,7 +33,7 @@ import {
 import { supabase } from "../lib/supabase";
 import type { CustomerWithCompany, EVisa, Visa } from "../types";
 
-type ParseStatus = "idle" | "reading" | "filling";
+type ParseStatus = "idle" | "reading" | "scanning" | "filling";
 type SaveStatus = "idle" | "uploading" | "saving";
 
 function yieldPaint() {
@@ -60,6 +60,7 @@ export function EVisaForm() {
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [removeStoredFile, setRemoveStoredFile] = useState(false);
   const [parseStatus, setParseStatus] = useState<ParseStatus>("idle");
+  const [ocrProgress, setOcrProgress] = useState(0);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [parseFlash, setParseFlash] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -223,17 +224,25 @@ export function EVisaForm() {
     setParseStatus("reading");
 
     try {
-      const items = await extractPdfItems(file);
+      const { items, source } = await extractPdfContent(file, {
+        onOcrProgress: (p) => {
+          if (gen !== parseGen.current) return;
+          setParseStatus("scanning");
+          setOcrProgress(p.progress);
+        },
+      });
       if (gen !== parseGen.current) return;
       setParseStatus("filling");
       await yieldPaint();
       if (gen !== parseGen.current) return;
-      const patch = fieldsFromEvisaPdfItems(items);
+      const patch = fieldsFromEvisaPdfItems(items, { source });
       if (Object.keys(patch).length === 0) {
         setFormError(
-          "Couldn’t read this PDF. Fill the fields yourself or try a different file." +
+          (source === "ocr"
+            ? "Couldn’t read this scanned PDF. Fill the fields yourself or try the original eVISA file."
+            : "Couldn’t read this PDF. Fill the fields yourself or try a different file.") +
             (isDebugMode()
-              ? ` [debug: no fields matched; ${items.length} text items found]`
+              ? ` [debug: no fields matched; ${items.length} ${source} items found]`
               : "")
         );
         return;
@@ -253,7 +262,9 @@ export function EVisaForm() {
       }
       patchFields(patch);
       setParseFlash(
-        `Filled from ${file.name} — check the fields before saving.`
+        source === "ocr"
+          ? `Filled from ${file.name} by scanning the image — check every field, especially numbers and dates, before saving.`
+          : `Filled from ${file.name} — check the fields before saving.`
       );
     } catch (err) {
       console.error("e-visa PDF extraction failed", err);
@@ -478,6 +489,16 @@ export function EVisaForm() {
               <p className="callout-warn" role="status">
                 Reading PDF…
               </p>
+            ) : null}
+            {parseStatus === "scanning" ? (
+              <div className="callout-warn" role="status">
+                <p>
+                  This PDF is an image, so it’s being scanned… {Math.round(ocrProgress * 100)}%
+                </p>
+                <p className="mt-1 text-xs">
+                  The first scan downloads the reader (about 10 MB) and can take a little while.
+                </p>
+              </div>
             ) : null}
             {parseStatus === "filling" ? (
               <p className="callout-warn" role="status">

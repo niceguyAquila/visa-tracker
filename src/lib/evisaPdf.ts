@@ -2,13 +2,18 @@
 import "./readableStreamAsyncIterator";
 // Legacy build: polyfills newer JS APIs (Promise.try, Map#getOrInsertComputed,
 // Math.sumPrecise, …) that iOS/iPadOS WebKit lacks. The modern build fails there.
-import { getDocument, GlobalWorkerOptions } from "pdfjs-dist/legacy/build/pdf.mjs";
+import {
+  getDocument,
+  GlobalWorkerOptions,
+  type PDFDocumentProxy,
+} from "pdfjs-dist/legacy/build/pdf.mjs";
 import workerSrc from "pdfjs-dist/legacy/build/pdf.worker.min.mjs?url";
 import {
   formatSavedName,
   formatSavedPassportNumber,
 } from "./customer";
 import type { EVisaFileMeta, EVisaFieldsValue } from "./evisa";
+import { OCR_MAX_PAGES, ocrPdfPages, type OcrProgress } from "./evisaOcr";
 import { EVISA_GENDER_OPTIONS } from "./evisa";
 import { supabase } from "./supabase";
 
@@ -78,7 +83,7 @@ const LABEL_ALIASES: Record<string, string> = {
 const LINE_Y_TOL = 5;
 const VALUE_MAX_X = 400;
 
-type PdfTextItem = {
+export type PdfTextItem = {
   str: string;
   x: number;
   y: number;
@@ -216,9 +221,62 @@ function toGender(raw: string): string {
     : "";
 }
 
-export async function extractPdfItems(file: File): Promise<PdfTextItem[]> {
+/** Fewer text items than this means the PDF is effectively image-only. */
+const MIN_TEXT_ITEMS = 5;
+
+export type PdfExtractSource = "text" | "ocr";
+
+export type PdfExtractResult = {
+  items: PdfTextItem[];
+  source: PdfExtractSource;
+};
+
+export type PdfExtractOptions = {
+  /** Fall back to OCR when the PDF has no text layer. Default true. */
+  ocr?: boolean;
+  /** Called when OCR starts and as it progresses. */
+  onOcrProgress?: (progress: OcrProgress) => void;
+};
+
+/**
+ * Read text items from a PDF; if it has no text layer (scan, Canva export,
+ * screenshot), render the first pages and OCR them instead.
+ */
+export async function extractPdfContent(
+  file: File,
+  options: PdfExtractOptions = {}
+): Promise<PdfExtractResult> {
   const data = new Uint8Array(await file.arrayBuffer());
-  const pdf = await getDocument({ data }).promise;
+  const loadingTask = getDocument({ data });
+  const pdf = await loadingTask.promise;
+  try {
+    const items = await textItemsFromPdf(pdf);
+    if (items.length >= MIN_TEXT_ITEMS || options.ocr === false) {
+      return { items, source: "text" };
+    }
+    const pageCount = Math.min(pdf.numPages, OCR_MAX_PAGES);
+    const pages = [];
+    for (let i = 1; i <= pageCount; i++) pages.push(await pdf.getPage(i));
+    options.onOcrProgress?.({
+      page: 1,
+      pages: pageCount,
+      progress: 0,
+      status: "starting",
+    });
+    return {
+      items: await ocrPdfPages(pages, options.onOcrProgress),
+      source: "ocr",
+    };
+  } finally {
+    await loadingTask.destroy();
+  }
+}
+
+export async function extractPdfItems(file: File): Promise<PdfTextItem[]> {
+  return (await extractPdfContent(file)).items;
+}
+
+async function textItemsFromPdf(pdf: PDFDocumentProxy): Promise<PdfTextItem[]> {
   const items: PdfTextItem[] = [];
   for (let i = 1; i <= pdf.numPages; i++) {
     const page = await pdf.getPage(i);
@@ -277,14 +335,86 @@ export function fieldsFromEvisaText(text: string): Partial<EVisaFieldsValue> {
   return fieldsFromRaw(extractFieldsFromLines(text));
 }
 
+function editDistance(a: string, b: string): number {
+  const prev = Array.from({ length: b.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= a.length; i++) {
+    let diag = prev[0];
+    prev[0] = i;
+    for (let j = 1; j <= b.length; j++) {
+      const tmp = prev[j];
+      prev[j] = Math.min(
+        prev[j] + 1,
+        prev[j - 1] + 1,
+        diag + (a[i - 1] === b[j - 1] ? 0 : 1)
+      );
+      diag = tmp;
+    }
+  }
+  return prev[b.length];
+}
+
+/**
+ * OCR misreads labels ("Travel Doe. Expiry"). Snap an item to the nearest
+ * known label when it's within a small edit distance, so the normal exact
+ * label matching works.
+ */
+function snapOcrLabel(str: string): string {
+  if (canonicalField(str)) return str;
+  const key = normalizeLabelKey(str);
+  if (key.length < 5) return str;
+  const maxDist = key.length >= 12 ? 2 : 1;
+  let best: string | null = null;
+  let bestDist = Infinity;
+  for (const alias of Object.keys(LABEL_ALIASES)) {
+    if (Math.abs(alias.length - key.length) > maxDist) continue;
+    const d = editDistance(key, alias);
+    if (d < bestDist) {
+      bestDist = d;
+      best = alias;
+    }
+  }
+  return best && bestDist <= maxDist ? LABEL_ALIASES[best] : str;
+}
+
+/**
+ * Clean an OCR'd identifier: drop spaces and resolve O/0 by context — a run of
+ * O/0 followed by a digit is digits ("FDROO7" → "FDR007"), followed by a
+ * letter is letters ("0P012" → "OP012"); at the end it follows what precedes.
+ */
+export function cleanOcrId(raw: string): string {
+  const s = raw.replace(/\s+/g, "").toUpperCase();
+  return s.replace(/[O0]+/g, (run, offset: number) => {
+    const next = s[offset + run.length] ?? "";
+    const prev = s[offset - 1] ?? "";
+    const ref = next || prev;
+    if (/\d/.test(ref)) return "0".repeat(run.length);
+    if (/[A-Z]/.test(ref)) return "O".repeat(run.length);
+    return run;
+  });
+}
+
+const OCR_ID_FIELDS = ["evisaNumber", "refNumber", "travelDocNo"] as const;
+
 export function fieldsFromEvisaPdfItems(
-  items: PdfTextItem[]
+  items: PdfTextItem[],
+  options: { source?: PdfExtractSource } = {}
 ): Partial<EVisaFieldsValue> {
+  const ocr = options.source === "ocr";
+  const source = ocr
+    ? items.map((item) => ({ ...item, str: snapOcrLabel(item.str) }))
+    : items;
   const raw = mergeFieldMaps(
-    extractFieldsFromLayout(items),
-    extractFieldsFromLines(itemsToText(items))
+    extractFieldsFromLayout(source),
+    extractFieldsFromLines(itemsToText(source))
   );
-  return fieldsFromRaw(raw);
+  const fields = fieldsFromRaw(raw);
+  if (ocr) {
+    for (const key of OCR_ID_FIELDS) {
+      const value = fields[key];
+      if (value) fields[key] = cleanOcrId(value);
+    }
+  }
+  return fields;
 }
 
 export async function parseEvisaPdf(
