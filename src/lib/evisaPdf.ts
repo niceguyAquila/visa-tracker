@@ -297,6 +297,19 @@ export function evisaFilePath(orgId: string, visaId: string): string {
   return `${orgId}/${visaId}/evisa.pdf`;
 }
 
+/**
+ * Copy a picked file into memory. On iOS, a File from the Files app / iCloud
+ * points at a temporary copy that can become unreadable (or read as empty) by
+ * the time the form is saved.
+ */
+export async function snapshotFile(file: File): Promise<File> {
+  const bytes = await file.arrayBuffer();
+  return new File([bytes], file.name, {
+    type: file.type || "application/pdf",
+    lastModified: file.lastModified,
+  });
+}
+
 export function isPdfFile(file: File): boolean {
   return (
     file.type === "application/pdf" ||
@@ -310,7 +323,14 @@ export async function uploadEvisaPdf(
   file: File
 ): Promise<EVisaFileMeta> {
   const path = evisaFilePath(orgId, visaId);
-  const { error } = await supabase.storage.from(EVISA_BUCKET).upload(path, file, {
+  // Upload raw bytes, not the File: storage-js wraps a Blob/File in multipart
+  // FormData (with an empty field name), which iOS Safari can send with an
+  // empty body → Storage replies "No content provided".
+  const bytes = await file.arrayBuffer();
+  if (bytes.byteLength === 0) {
+    throw new Error("The PDF is empty or can’t be read. Choose the file again.");
+  }
+  const { error } = await supabase.storage.from(EVISA_BUCKET).upload(path, bytes, {
     upsert: true,
     contentType: "application/pdf",
   });

@@ -27,6 +27,7 @@ import {
   fieldsFromEvisaPdfItems,
   isPdfFile,
   removeEvisaPdf,
+  snapshotFile,
   uploadEvisaPdf,
 } from "../lib/evisaPdf";
 import { supabase } from "../lib/supabase";
@@ -190,7 +191,19 @@ export function EVisaForm() {
     }));
   }
 
-  async function onPdfPicked(file: File) {
+  async function onPdfPicked(picked: File) {
+    let file: File;
+    try {
+      file = await snapshotFile(picked);
+    } catch (err) {
+      console.error("e-visa PDF read failed", err);
+      setFormError(
+        "Couldn’t open this file. Choose it again." +
+          (isDebugMode() ? ` [debug: ${describeError(err)}]` : "")
+      );
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
     if (!isPdfFile(file)) {
       setFormError("Choose a PDF file.");
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -351,6 +364,7 @@ export function EVisaForm() {
         },
       });
     } catch (err) {
+      console.error("e-visa save failed", err);
       setFormError(
         err instanceof Error ? err.message : "Couldn’t upload the PDF."
       );
