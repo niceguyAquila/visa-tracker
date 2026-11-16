@@ -238,7 +238,8 @@ export function EVisaForm() {
       setParseFlash(
         `Filled from ${file.name} — check the fields before saving.`
       );
-    } catch {
+    } catch (err) {
+      console.error("e-visa PDF extraction failed", err);
       if (gen !== parseGen.current) return;
       setFormError(
         "Couldn’t read this PDF. Fill the fields yourself or try a different file."

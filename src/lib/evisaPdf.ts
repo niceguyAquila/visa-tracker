@@ -1,5 +1,7 @@
-import { getDocument, GlobalWorkerOptions } from "pdfjs-dist";
-import workerSrc from "pdfjs-dist/build/pdf.worker.min.mjs?url";
+// Legacy build: polyfills newer JS APIs (Promise.try, Map#getOrInsertComputed,
+// Math.sumPrecise, …) that iOS/iPadOS WebKit lacks. The modern build fails there.
+import { getDocument, GlobalWorkerOptions } from "pdfjs-dist/legacy/build/pdf.mjs";
+import workerSrc from "pdfjs-dist/legacy/build/pdf.worker.min.mjs?url";
 import {
   formatSavedName,
   formatSavedPassportNumber,
