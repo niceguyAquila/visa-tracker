@@ -1,3 +1,5 @@
+// Must load before pdf.js is used: Safari lacks `for await` over ReadableStream.
+import "./readableStreamAsyncIterator";
 // Legacy build: polyfills newer JS APIs (Promise.try, Map#getOrInsertComputed,
 // Math.sumPrecise, …) that iOS/iPadOS WebKit lacks. The modern build fails there.
 import { getDocument, GlobalWorkerOptions } from "pdfjs-dist/legacy/build/pdf.mjs";
