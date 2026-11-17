@@ -35,7 +35,7 @@ const DEFAULT_PAGE_SIZE: PageSize = 50;
 
 const inputClass = "input-field text-sm";
 
-type UrgencyFilter = "all" | "expired" | "today" | "10" | "30" | "ok";
+type UrgencyFilter = "all" | "expired" | "today" | "10" | "within30" | "30" | "ok";
 type ExtDoneFilter = "all" | "yes" | "no";
 type LandedFilter = "all" | "yes" | "no";
 type ArchiveStatusFilter = "all" | "Cuti" | "Blacklist" | "Finished";
@@ -86,6 +86,7 @@ function parseUrgency(value: string | null): UrgencyFilter {
     value === "expired" ||
     value === "today" ||
     value === "10" ||
+    value === "within30" ||
     value === "30" ||
     value === "ok"
   ) {
@@ -418,6 +419,8 @@ function VisaList({ mode }: VisaListProps) {
         q = q.eq("date_to_extension", today);
       } else if (urgency === "10") {
         q = q.gte("date_to_extension", today).lte("date_to_extension", addDaysISO(today, 10));
+      } else if (urgency === "within30") {
+        q = q.gte("date_to_extension", today).lte("date_to_extension", addDaysISO(today, 30));
       } else if (urgency === "30") {
         q = q
           .gt("date_to_extension", addDaysISO(today, 10))
@@ -644,6 +647,7 @@ function VisaList({ mode }: VisaListProps) {
               <option value="expired">Overdue</option>
               <option value="today">Due today</option>
               <option value="10">Due ≤10 days</option>
+              <option value="within30">Due ≤30 days</option>
               <option value="30">Due 11–30 days</option>
               <option value="ok">More than 30 days</option>
             </select>

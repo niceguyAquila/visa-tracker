@@ -127,14 +127,14 @@ function PassportVisaKpis({
 
       <MetricSection
         title="Visa"
-        hint="Arrived visas with extension due today through the next 10 days, and no extension date yet."
+        hint="Arrived visas with extension due today through the next 30 days, and no extension date yet."
       >
         <KpiCard
-          label="Due ≤10d"
-          value={kpis.extDue10}
+          label="Due ≤30d"
+          value={kpis.extDue30}
           tone="amber"
           to={kpiPath("/visas/active", {
-            urgency: "10",
+            urgency: "within30",
             ext: "no",
             company: companyId,
           })}
@@ -412,7 +412,7 @@ export function Dashboard() {
                       <th className="px-3 py-2.5 text-right">Waiting</th>
                       <th className="px-3 py-2.5 text-right">NTL</th>
                       <th className="px-3 py-2.5 text-right">Pass. &lt;7 mo</th>
-                      <th className="px-3 py-2.5 text-right">Ext. ≤10d</th>
+                      <th className="px-3 py-2.5 text-right">Ext. ≤30d</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -452,7 +452,7 @@ export function Dashboard() {
                           {row.expired}
                         </td>
                         <td className="px-3 py-2.5 text-right tabular-nums text-ink-soft">
-                          {row.extDue10}
+                          {row.extDue30}
                         </td>
                       </tr>
                     ))}
