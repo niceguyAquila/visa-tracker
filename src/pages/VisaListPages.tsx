@@ -35,7 +35,15 @@ const DEFAULT_PAGE_SIZE: PageSize = 50;
 
 const inputClass = "input-field text-sm";
 
-type UrgencyFilter = "all" | "expired" | "today" | "10" | "within30" | "30" | "ok";
+type UrgencyFilter =
+  | "all"
+  | "expired"
+  | "today"
+  | "10"
+  | "within30"
+  | "30"
+  | "ok"
+  | "range";
 type ExtDoneFilter = "all" | "yes" | "no";
 type LandedFilter = "all" | "yes" | "no";
 type ArchiveStatusFilter = "all" | "Cuti" | "Blacklist" | "Finished";
@@ -88,11 +96,18 @@ function parseUrgency(value: string | null): UrgencyFilter {
     value === "10" ||
     value === "within30" ||
     value === "30" ||
-    value === "ok"
+    value === "ok" ||
+    value === "range"
   ) {
     return value;
   }
   return "all";
+}
+
+/** Inclusive extension-due window. Swaps reversed dates so the query still matches. */
+function orderedDueRange(from: string, to: string): { from: string; to: string } {
+  if (from && to && from > to) return { from: to, to: from };
+  return { from, to };
 }
 
 function parseExtDone(value: string | null): ExtDoneFilter {
@@ -281,6 +296,8 @@ function VisaList({ mode }: VisaListProps) {
   const routeFilter = (searchParams.get("route") ?? "").trim();
   const arrivalDate = parseDateParam(searchParams.get("arrival"));
   const urgency = parseUrgency(searchParams.get("urgency"));
+  const dueFrom = parseDateParam(searchParams.get("due_from"));
+  const dueTo = parseDateParam(searchParams.get("due_to"));
   const extDone = parseExtDone(searchParams.get("ext"));
   const landed = parseLanded(searchParams.get("landed"));
   const archiveStatus = parseArchiveStatus(searchParams.get("status"));
@@ -306,6 +323,8 @@ function VisaList({ mode }: VisaListProps) {
       routeFilter ||
       arrivalDate ||
       urgency !== "all" ||
+      dueFrom ||
+      dueTo ||
       extDone !== "all" ||
       (mode === "active" && landed !== "all") ||
       (mode === "archive" && archiveStatus !== "all")
@@ -411,7 +430,13 @@ function VisaList({ mode }: VisaListProps) {
     }
 
     const today = todayISODate();
-    if (landed !== "no" && urgency !== "all") {
+    const dueRange = urgency === "range" ? orderedDueRange(dueFrom, dueTo) : null;
+    const urgencyActive =
+      landed !== "no" &&
+      (urgency === "range"
+        ? Boolean(dueRange?.from || dueRange?.to)
+        : urgency !== "all");
+    if (urgencyActive) {
       q = q.is("date_extended", null).eq("extension_done", false);
       if (urgency === "expired") {
         q = q.lt("date_to_extension", today);
@@ -427,6 +452,9 @@ function VisaList({ mode }: VisaListProps) {
           .lte("date_to_extension", addDaysISO(today, 30));
       } else if (urgency === "ok") {
         q = q.gt("date_to_extension", addDaysISO(today, 30));
+      } else if (urgency === "range" && dueRange) {
+        if (dueRange.from) q = q.gte("date_to_extension", dueRange.from);
+        if (dueRange.to) q = q.lte("date_to_extension", dueRange.to);
       }
     }
 
@@ -490,6 +518,8 @@ function VisaList({ mode }: VisaListProps) {
     routeFilter,
     arrivalDate,
     urgency,
+    dueFrom,
+    dueTo,
     extDone,
     landed,
     archiveStatus,
@@ -637,11 +667,13 @@ function VisaList({ mode }: VisaListProps) {
               className={inputClass}
               value={landed === "no" ? "all" : urgency}
               disabled={landed === "no"}
-              onChange={(e) =>
-                  updateParams({
-                    urgency: e.target.value === "all" ? "" : e.target.value,
-                  })
-              }
+              onChange={(e) => {
+                const value = e.target.value;
+                updateParams({
+                  urgency: value === "all" ? "" : value,
+                  ...(value === "range" ? {} : { due_from: "", due_to: "" }),
+                });
+              }}
             >
               <option value="all">All</option>
               <option value="expired">Overdue</option>
@@ -650,8 +682,41 @@ function VisaList({ mode }: VisaListProps) {
               <option value="within30">Due ≤30 days</option>
               <option value="30">Due 11–30 days</option>
               <option value="ok">More than 30 days</option>
+              <option value="range">Custom range</option>
             </select>
           </label>
+          {landed !== "no" && urgency === "range" ? (
+            <div className="grid grid-cols-2 gap-2 sm:col-span-2">
+              <label className="block text-sm">
+                <span className="mb-1 block font-medium text-ink-soft">Due from</span>
+                <input
+                  type="date"
+                  className={inputClass}
+                  value={dueFrom}
+                  max={dueTo || undefined}
+                  onChange={(e) =>
+                    updateParams({ urgency: "range", due_from: e.target.value })
+                  }
+                />
+              </label>
+              <label className="block text-sm">
+                <span className="mb-1 block font-medium text-ink-soft">Due to</span>
+                <input
+                  type="date"
+                  className={inputClass}
+                  value={dueTo}
+                  min={dueFrom || undefined}
+                  onChange={(e) =>
+                    updateParams({ urgency: "range", due_to: e.target.value })
+                  }
+                />
+              </label>
+              <p className="col-span-2 text-xs text-muted">
+                Visas not yet extended, with an extension due in this period.
+                Both dates are included. Leave one blank for an open end.
+              </p>
+            </div>
+          ) : null}
           <label className="block text-sm">
             <span className="mb-1 block font-medium text-ink-soft">
               Extension done
