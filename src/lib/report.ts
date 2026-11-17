@@ -101,6 +101,7 @@ export async function downloadCustomerVisaReport(
   const customerHeaders = [
     "Company",
     "Full name",
+    "Date of birth",
     "Status",
     "NTL",
     "Phone",
@@ -120,6 +121,7 @@ export async function downloadCustomerVisaReport(
     return [
       cell(c.companies?.name),
       cell(c.full_name),
+      cell(c.date_of_birth),
       cell(c.status ?? DEFAULT_CUSTOMER_STATUS),
       cell(Boolean(c.ntl)),
       cell(c.contact_number),

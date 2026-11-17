@@ -38,6 +38,7 @@ export type Customer = {
   visa_count: number;
   extension_count: number;
   contact_number: string;
+  date_of_birth: string | null;
   status: CustomerStatus;
   ntl: boolean;
   photo_path: string | null;

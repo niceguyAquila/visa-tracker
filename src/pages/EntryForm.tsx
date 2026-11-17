@@ -69,6 +69,7 @@ const emptyPerson = (): PersonFieldsValue => ({
   extensionCount: 0,
   dialCode: DEFAULT_DIAL.code,
   localNumber: "",
+  dateOfBirth: "",
   status: DEFAULT_CUSTOMER_STATUS,
   ntl: false,
 });
@@ -433,6 +434,7 @@ export function EntryForm({ defaultMode }: EntryFormProps) {
       visa_count: Math.max(0, Math.floor(Number(person.visaCount)) || 0),
       extension_count: Math.max(0, Math.floor(Number(person.extensionCount)) || 0),
       contact_number: composePhone(person.dialCode, person.localNumber),
+      date_of_birth: person.dateOfBirth || null,
       company_id: person.companyId,
       status: person.status ?? DEFAULT_CUSTOMER_STATUS,
       ntl: person.ntl,

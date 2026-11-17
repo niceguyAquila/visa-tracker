@@ -36,6 +36,7 @@ export function CustomerForm() {
     extensionCount: 0,
     dialCode: DEFAULT_DIAL.code,
     localNumber: "",
+    dateOfBirth: "",
     status: DEFAULT_CUSTOMER_STATUS,
     ntl: false,
   });
@@ -96,6 +97,7 @@ export function CustomerForm() {
         extensionCount: customer.extension_count,
         dialCode: parsed.dialCode,
         localNumber: parsed.local,
+        dateOfBirth: customer.date_of_birth ?? "",
         status: customer.status ?? DEFAULT_CUSTOMER_STATUS,
         ntl: customer.ntl ?? false,
       });
@@ -133,6 +135,7 @@ export function CustomerForm() {
           Math.floor(Number(person.extensionCount)) || 0
         ),
         contact_number: composePhone(person.dialCode, person.localNumber),
+        date_of_birth: person.dateOfBirth || null,
         company_id: person.companyId,
         status: person.status,
         ntl: person.ntl,

@@ -369,6 +369,18 @@ export function EVisaForm() {
         setFormError(friendlyEvisaConflict(result.error.message));
         return;
       }
+
+      if (fields.dateOfBirth && !customer?.date_of_birth) {
+        const { error: dobErr } = await supabase
+          .from("customers")
+          .update({ date_of_birth: fields.dateOfBirth })
+          .eq("id", visa.customer_id)
+          .is("date_of_birth", null);
+        if (dobErr) {
+          console.error("could not copy date of birth to customer", dobErr);
+        }
+      }
+
       navigate(`/visas/${id}`, {
         state: {
           flashSuccess: existing ? "e-Visa updated." : "e-Visa saved.",

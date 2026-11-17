@@ -24,7 +24,7 @@ import {
   uploadPassportPhoto,
 } from "../lib/passportPhoto";
 import { supabase } from "../lib/supabase";
-import { daysUntilISODate, formatDisplayDate } from "../lib/dates";
+import { daysUntilISODate, formatDisplayDate, formatOptionalDisplayDate } from "../lib/dates";
 import { statusBadgeClass, landedBadgeClass, landedLabel, urgencyClass } from "../lib/ui";
 import { deriveLeavePhase, isVisaLanded } from "../lib/visa";
 import { finishDueVisas } from "../lib/visaSweep";
@@ -519,6 +519,14 @@ export function CustomerDetail() {
               ) : (
                 <span className="text-ink">—</span>
               )}
+            </dd>
+          </div>
+          <div>
+            <dt className="meta">
+              Date of birth
+            </dt>
+            <dd className="mt-1 text-ink">
+              {formatOptionalDisplayDate(customer.date_of_birth)}
             </dd>
           </div>
           <div>

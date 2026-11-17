@@ -23,6 +23,7 @@ export type PersonFieldsValue = {
   extensionCount: number;
   dialCode: string;
   localNumber: string;
+  dateOfBirth: string;
   status: CustomerStatus;
   ntl: boolean;
 };
@@ -83,6 +84,16 @@ export function PersonFields({
             aria-invalid={Boolean(errors.fullName)}
           />
           <FieldError message={errors.fullName} />
+        </label>
+
+        <label className="block">
+          <FieldLabel>Date of birth</FieldLabel>
+          <input
+            type="date"
+            value={value.dateOfBirth}
+            onChange={(e) => onChange({ dateOfBirth: e.target.value })}
+            className={inputClass}
+          />
         </label>
 
         <label className="block">
